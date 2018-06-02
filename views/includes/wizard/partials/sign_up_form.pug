@@ -1,0 +1,28 @@
+.card.sign-up-form-container
+  .card-body
+    p Crea una cuenta gratis desde 
+      a(href="https://seller.pakke.mx/login" target="_blank") aqui
+    // form( id="sign-up-form" )
+      // error container
+      .alert.alert-primary.error-container(role='alert')
+        smal( id="pakke_api_key_help" class="form-text text-muted" )
+      .form-group(class="sign_up_form")
+        .row
+          .col-md-6.col-xs-12
+            input(type="text" class="form-control" placeholder="Nombre de usuario" name="user_name" )
+          .col-md-6.col-xs-12
+            input(type="email" class="form-control" placeholder="Correo" name="user_email")
+      .form-group
+        .row
+          .col-md-6.col-xs-12
+            input(type="password" class="form-control" placeholder="password" name="user_password")
+          .col-md-6.col-xs-12
+            input(type="password" class="form-control" placeholder="repite la contraseña" name="user_repeat_password")
+      .form-group
+        .row
+          .col-md-6.col-xs-12
+
+            button(type="button" class="btn btn-primary" id="signUpBtn") Crear cuenta
+    // .alert.alert-primary.error-container(role='alert')
+    //  smal( id="pakke_api_key_help" class="form-text text-muted" )
+    

@@ -1,0 +1,17 @@
+form(action="#" class="form" id="validate-pakke-api-form")
+  .form-group
+    .error-container
+      .alert.alert-primary(role='alert')
+        smal( id="pakke_api_key_help" class="form-text text-muted" )
+          
+
+  .form-group
+    .input-group.mb-3
+      .input-group-prepend
+        span.input-group-text#inner-input API key
+      input( type="text" class="form-control" id="pakke_api_key" value="7710b94e651b6b1b2de4995cae07f03e6e240a85" name="pakke_api_key" placeholder="854c9a694ceb733ff1abbd321b0aa4f050ffded2" aria-describedby="inner-input")
+      .input-group-append
+        button(type="button" class="input-group-text" id="validate-pake-api-key") validar
+  .form-group
+    input(type="checkbox" id="signUpCheckbox" name="signUpCheckbox")
+    label(for="signUpCheckbox") No tengo cuenta en Pakke

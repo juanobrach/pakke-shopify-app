@@ -1,0 +1,66 @@
+.swiper-container {
+    width: 100%;
+    height: 100%;
+    .swiper-slide {
+      .container{
+        position:relative;
+      }
+      @include full-bg($blue-gradient)
+    }
+}
+
+.swiper-button-next,
+.swiper-button-back{
+  background-image: none !important
+}
+
+.step-intro{
+
+  .center-elements{
+    display: flex;
+    flex-flow: column wrap;
+    height: 70%;
+    justify-content: space-around;
+    .btn-container{
+      width: 100%;
+      text-align: center;
+    }
+    .btn-start-wizard{
+      font-size:1em;
+      text-align: left;
+      font-weight: bold;
+      color: $white;
+      text-transform: uppercase;
+      width: 50%;
+      height: 60px;
+      margin:auto;
+      position:relative;
+      i{
+        font-size: 1.5em;
+        position:absolute;
+        right:1%;
+      }
+    }
+  }
+}
+
+.step-2{
+  .container{
+    max-width: 690px;
+  }
+
+  .title{
+    border-bottom:1px solid blue;
+    text-align: center;
+  }
+}
+
+.wizard-actions-menu{
+  position:absolute;
+  bottom: 0;
+  left: 5%;
+  right: 5%;
+  button{
+    width:25%;
+  }
+}

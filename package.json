@@ -1,0 +1,32 @@
+{
+  "name": "shopify-express-app",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "animate.css": "^3.6.1",
+    "body-parser": "^1.18.3",
+    "cookie": "^0.3.1",
+    "dotenv": "^5.0.1",
+    "es6-promise": "^4.2.4",
+    "express": "^4.16.3",
+    "isomorphic-fetch": "^2.2.1",
+    "nonce": "^1.0.4",
+    "request": "^2.87.0",
+    "request-promise": "^4.2.2",
+    "shopify-api-node": "^2.14.0",
+    "smartwizard": "^4.3.1"
+  },
+  "devDependencies": {
+    "gulp": "^3.9.1",
+    "gulp-sass": "^4.0.1",
+    "mongodb": "^3.1.0-beta4",
+    "pug": "^2.0.3",
+    "swiper": "^4.3.2"
+  }
+}

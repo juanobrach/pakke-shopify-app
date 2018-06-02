@@ -1,0 +1,4 @@
+@mixin full-bg($color) {
+  background-image:$color;
+  background-repeat:no-repeat;
+}

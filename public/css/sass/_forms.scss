@@ -1,0 +1,15 @@
+form{
+  width:100%;
+  margin:auto;
+  position:relative;
+}
+#validate-pake-api-key{
+  cursor:pinter;
+}
+
+.sign-up-form-container{
+  display: none;
+  .error-container{
+    display:none;
+  }
+}
