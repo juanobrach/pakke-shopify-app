@@ -9,7 +9,12 @@ form{
 
 .sign-up-form-container{
   display: none;
+  margin-bottom: 1em;
   .error-container{
     display:none;
   }
+}
+
+.form-error-container{
+  display: none;
 }

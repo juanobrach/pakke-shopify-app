@@ -1,0 +1,15 @@
+form(action="#" class="form" id="shopify-login-form")
+  .form-group
+    .error-container
+      .alert.alert-danger.form-error-container(role='alert')
+        smal( class="form-text text-muted" )
+
+  .form-group
+    .input-group.mb-3
+      .input-group-prepend
+        span.input-group-text#inner-input HTTPS://
+      input( type="text" class="form-control" id="shopify_shop_name" value="" name="shopify_shop_name" placeholder="nombretienda" aria-describedby="inner-input")
+      .input-group-append .myshopify.com
+  .form-group
+    button(type="button" id="btn_validate_shop_url_form") Validar
+    button(type="button" class="btn-setup-app" disabled="disabled" ) Instalar extension Pakke

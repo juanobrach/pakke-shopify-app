@@ -1,3 +1,10 @@
 include includes/head.pug
 div.app-container
-  include includes/setup_wizard.pug
+  // include includes/setup_wizard.pug
+  div.logo-container
+    a(href='http://pakke.mx/' target='_blank')
+      img(src='assets/img/logo-pakke-bco.svg')
+    span( style="font-size:weight;") +
+    a(href='https://www.shopify.com.mx/' target='_blank')
+      img(src='assets/img/shopify-logo-300.png')
+  include includes/setup_form.pug

@@ -3,118 +3,153 @@ var express = require('express')
 
 const request = require('request-promise');
 const Shopify = require('shopify-api-node');
-const SHOPIFY_API_KEY = process.env.SHOPIFY_API_KEY;
-const SHOPIFY_API_SECRET = process.env.SHOPIFY_API_SECRET;
+const API_KEY = process.env.SHOPIFY_API_KEY;
+const API_SECRET = process.env.SHOPIFY_API_SECRET;
 const SHOP_NAME = process.env.SHOP_NAME;
+const SHOPIFY_ACCESS_TOKEN = process.env.SHOPIFY_ACCESS_TOKEN;
+const APP_URL = process.env.APP_URL;
+const PAKKE_API_URL = process.env.PAKKE_API_URL;
 
 
-/*
-*  url( pakke/webhook)
-*/
-router.get('/webhook', function(req,res){
-  console.log("pake webhook");
-  // TODO: connectar a la API shopify para hacer un update al trackeo de los envios
-  res.send(JSON.stringify({ trackStatus: true }));
-})
+module.exports = function(){
 
-
-/*
-* Este metodo valida la api key del customer haciendo una consulta basica
-* Utilizado por el wizard step 2.
-*/
-router.post('/validateApiKey', function(req, res){
-  res.setHeader('Content-Type', 'application/json');
-  const user_api_key = req.body.api_key;
-
-  if( user_api_key.length  <= 0 ){
-      res.send(JSON.stringify({ error: true, error_message: 'No puede estar vacia la API key' }));
+  const validateApiKey = function validateApiKey(){
+    return new Promise( ( resolve, reject )=>{
+      request({
+        method:'get',
+        uri: PAKKE_API_URL + '/Couriers',
+        headers: {
+          'content-type':'application/json',
+          'Authorization': user_api_key
+        },
+        json: true // Automatically parses the JSON string in the response
+      }).then( (result) =>{
+        if( result ){
+            resolve(JSON.stringify({ error: false}) );
+        }
+      }).catch((error) => {
+          reject(JSON.stringify({
+            "valid" : true,
+            "message" : "La api es incorrecta, intente mas tarde o ingrese una nueva."
+          }));
+       })
+    })
   }
 
-  request({
-    method:'get',
-    uri: 'https://seller.pakke.mx/api/v1/PakkeServices',
-    headers: {
-      'content-type':'application/json',
-      'x-api-key': user_api_key
-    },
-    json: true // Automatically parses the JSON string in the response
-  }).then( (result) =>{
-    if( result ){
-      res.send(JSON.stringify({ 'validated': true }));
-    }
-  }).catch((error) => {
-      res.send(JSON.stringify({ 'error': true, 'error_message': error }));
-   })
-})
-
-/**
-* Signup method : https://seller.pakke.mx/api/v1/Users/signUp
-*/
-router.post('/signUp', function(req,res){
-  res.setHeader('Content-Type', 'application/json');
-  request({
-    method:'POST',
-    uri: 'https://seller.pakke.mx/api/v1/Users/signUp',
-    body:{
-      "email": req.body.user_email,
-      "name": req.body.user_name,
-      "password": req.body.user_password,
-      "confirm": req.body.user_repeat_password
-    },
-    json: true
-  }).then( (result) =>{
-    if( result ){
-      // Obtengo la aprobacion del token para activar api key
-      // TODO: en la documentacion decia que devolvia la API KEY pero no lo hace
-      // TODO: guardar token o public_key en DB.
-      const uid = result.uid;
-      const token = result.token;
-      // const apiKey = result.apiKey;
-      request({
-        method:'GET',
-        uri:'https://seller.pakke.mx/api/v1/Users/confirm',
-        qs:{
-          uid:uid,
-          token:token
-        },
-        json: true
-      }).then( (confirm )=>{
-        if( confirm.error ){
-          res.send(JSON.stringify({ error: true, error_message: confirm.error.message }));
-        }else{
-          res.send(JSON.stringify({ validated: true }));
-        }
-      }).catch( (error)=>{
-        console.log(error)
-          res.send(JSON.stringify({ error: true, error_message: error }));
-      })
-    }
-  }).catch((error) => {
-      res.send(JSON.stringify({ error: true, error_message: error }));
-      console.log(error);
-   })
-})
+  const getProvidersShippingPrices = function( data ){
+    console.log('data', data);
+    return new Promise( function( resolve, reject ){
+      const options = {
+        'method': 'POST',
+        'uri': PAKKE_API_URL + '/Shipments/rates',
+        'body': {
+            "ZipCode": data.zip_code ,
+            "Parcel": {
+              "Length": 1,
+              "Width": 1,
+              "Height": 1,
+              "Weight": data.shipping_total_weight,
+              "VolumetricWeight": data.shipping_total_weight
+            }
+          },
+         'headers': {
+           'content-type':'application/json',
+           'Authorization': data.pakke_api_key
+         },
+         'json': true
+       }
+       request(options)
+       .then( ( response ) => {
+         var providers_object = {}
+         var providers = response.Pakke.map( el => {
+           return {
+             "service_name": el.CourierName,
+             "description":  el.CourierServiceName + " " +  el.DeliveryDays,
+             "service_code": el.CourierCode,
+             "currency":"MXN",
+             "total_price": el.TotalPrice ,
+           }
+         })
+         providers_object.rates =  providers;
+         resolve( JSON.stringify( providers_object) );
+        }).catch((err) => {
+          reject(err)
+        });
+    })
+  }
 
 
-/*
-*  Obtengo los servicios, esta fn es util para cuando se requiera instalarlos
-*/
-router.get('/get_services', function(req, res){
-  request({
-    method:'get',
-    uri: 'https://seller.pakke.mx/api/v1/PakkeServices',
-    headers: {
-      'content-type':'application/json',
-      'x-api-key': user_api_key
-    },
-    json: true
-  }).then( (result)=>{
-    if( result ){
-      res.send(JSON.stringify(result));
-    }
-  }).catch( (error)=>{
-      res.send(JSON.stringify({'error':true, 'error_message': error }));
-  })
-})
+  const createOrder = function( order_data ){
 
-module.exports = router;
+    console.log('order data webhook send:', order_data );
+
+
+    return new Promise( function( resolve, reject ){
+
+
+      const options = {
+        'method': 'POST',
+        'uri': PAKKE_API_URL + '/Shipments',
+        'body': {
+          "CourierCode": "FDX",
+          "CourierServiceId": "FEDEX_EXPRESS_SAVER",
+          "ResellerReference": "REF-V6BN9R1HB2OZQ",
+          "Parcel": {
+           "Length": 1,
+           "Width": 1,
+           "Height": 1,
+           "Weight": 1
+          },
+          "Sender": {
+           "Name": "Arturo",
+           "CompanyName": "sanki",
+           "Phone1": "5545789636",
+           "Phone2": "5514785696",
+           "Email": "avillalbazo@next-cloud.mx"
+          },
+          "Recipient": {
+           "Name": "Destino nombre",
+           "CompanyName": "empresa destino",
+           "Phone1": "5555555555",
+           "Email": "destino@prueba.com"
+          },
+          "AddressFrom": {
+           "ZipCode": "11950",
+           "State": "MX-MEX",
+           "City": "Naucalpan de Juárez(MEX",
+           "Neighborhood": "lomas altas",
+           "Address1": "calle origen",
+           "Address2": "ref origen",
+           "Residential": true
+          },
+          "AddressTo": {
+           "ZipCode": "53126",
+           "State": "MX-MEX",
+           "City": "Naucalpan de Juárez(MEX",
+           "Neighborhood": "lomas verdes",
+           "Address1": "calle destino",
+           "Address2": "ref destino",
+           "Residential": false
+          }
+          },
+         'headers': {
+           'content-type':'application/json',
+           'Authorization': 'NJYc54geWEqW2WDR7BiXoSPk7ThfujFirNKdgISJ2I0Qqb7H7ZrzX7zscR5LKcIl'
+         },
+         'json': true
+       }
+       request(options)
+       .then( ( response ) => {
+         resolve( JSON.stringify( response) );
+         reject(err)
+        }).catch((err) => {
+        });
+    })
+  }
+
+  return {
+    validateApiKey: validateApiKey,
+    getProvidersShippingPrices : getProvidersShippingPrices,
+    createOrder : createOrder,
+  }
+}

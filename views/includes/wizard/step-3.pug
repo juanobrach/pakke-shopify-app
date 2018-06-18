@@ -1,1 +1,13 @@
 .swiper-slide.setp-shopify
+  .container
+    .jumbotron
+      .header
+        div.logo-container
+          img(src='assets/img/logo-pakke-bco.svg')
+      h3.title Paso 2 Configurar tu tienda de Shopify
+      .alert.alert-primary(role='alert')
+        smal( id="pakke_api_key_help" class="form-text text-muted" )
+          a( href="https://seller.pakke.mx/#/perfil" target="_blank") Si aun no tienes tu tienda Shopify deberas crear una cuenta para seguir con la instalación
+
+      include partials/shopify_login.pug
+      include partials/wizard_actions_menu.pug
