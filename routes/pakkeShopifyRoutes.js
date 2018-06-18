@@ -7,9 +7,9 @@ const nonce             = require('nonce')();
 const querystring       = require('querystring');
 const request           = require('request-promise');
 const Shopify           = require('shopify-api-node');
-const ShopifyController = require('./ShopifyControllers.js')();
-const User              = require('./UserController.js')();
-const PakkeController   = require('./PakkeController.js')();
+const ShopifyController = require('../controllers/ShopifyControllers.js')();
+const UserController    = require('../controllers/UserController.js')();
+const PakkeController   = require('../controllers/PakkeController.js')();
 const fs                = require('fs');
 
 const SHOPIFY_API_KEY   = process.env.SHOPIFY_API_KEY;
@@ -17,6 +17,8 @@ const API_SECRET        = process.env.SHOPIFY_API_SECRET;
 const SHOP_URL          = process.env.SHOP_URL;
 const SHOP_NAME         = process.env.SHOP_NAME;
 const APP_URL           = process.env.APP_URL;
+const SHOP_TOKEN        = process.env.SHOP_TOKEN;
+const PAKKE_API_KEY     = process.env.PAKKE_API_KEY;
 
 
 /*
@@ -31,7 +33,7 @@ router.post('/shipping_rates_providers_cb', function(req, res){
   // Obtengo el nombre de la tienda para buscar el API key de pakke correspondiente
   const shop_name = req.rawHeaders[5].split('.')[0]
   console.log('shop name', shop_name );
-  User.findByShopName(shop_name).then( user=>{
+  UserController.getUserByShopName(shop_name).then( user=>{
     if( !req.body.rate.items ){
       // TODO: sistema de notificacion de errores
       res.send( JSON.stringify({error:true, message:'no existen items en la orden'}) )
@@ -46,7 +48,7 @@ router.post('/shipping_rates_providers_cb', function(req, res){
     const data = {
       shipping_total_weight: grams / 1000,
       zip_code: req.body.rate.destination.postal_code,
-      pakke_api_key: user.key_pake
+      pakke_api_key: user.key_pake || PAKKE_API_KEY
     }
     console.log(data);
     PakkeController.getProvidersShippingPrices( data  ).then(  shipping_providers =>{
@@ -74,7 +76,7 @@ router.post('/validate_shop_url', function(req, res) {
       ShopifyController.validateIfShopExists(shop).then( result => {
         console.log("la tienda existe" ,shop)
         // Valido que no exista ya un usuario con esta tienda
-        User.getUserByShop(shop).then( exist => {
+        UserController.getUserByShopName(shop).then( exist => {
           res.send(JSON.stringify({
             "valid": false,
             "message": "Ya existe un usuario con esta tienda"
@@ -125,7 +127,6 @@ router.post('/signup', function(req, res){
   const logtext= "--- nueva instalacion ---";
   fs.appendFile('installations.log', logtext, (err) => {
       if (err) throw err;
-      console.log('The lyrics were updated!');
   });
 
   const user_data = {
@@ -136,7 +137,7 @@ router.post('/signup', function(req, res){
     token_shopify: ''
   }
 
-  User.createUser( user_data ).then( user => {
+  UserController.createUser( user_data ).then( user => {
     console.log("user_id_response ", user );
     res.redirect('/pakkeShopify/install/authorize/'+ req.body.shop +'/'+user._id);
     const logtext= "USUARIO CREADO: OK";
@@ -149,8 +150,12 @@ router.post('/signup', function(req, res){
     fs.appendFile('installations.log', logtext, (err) => {
         if (err) throw err;
     });
-    // envio error al ajax del formulario
-    res.send(JSON.stringify({error:true, error_message: err.errors.shop.message}))
+    UserController.getUserByShopName( user_data.shop ).then( user => {
+      // envio error al ajax del formulario
+      res.redirect('/pakkeShopify/install/authorize/'+ req.body.shop +'/'+user.data._id);
+    }).catch( err => {
+      console.log( err );
+    })  ;
   })
 })
 
@@ -224,7 +229,6 @@ router.get('/install/getAccessTokenCallBack', function(req, res) {
       const logtext= "TOKEN SHOPIFY: NO";
       fs.appendFile('installations.log', logtext, (err) => {
           if (err) throw err;
-          console.log('The lyrics were updated!');
       });
       return res.status(400).send('HMAC validation failed');
     }
@@ -244,7 +248,7 @@ router.get('/install/getAccessTokenCallBack', function(req, res) {
      fs.appendFile('installations.log', logtext, (err) => {
          if (err) throw err;
      });
-     User.update_by_shop_name( shop.split('.')[0], accessToken  ).then( response => {
+     UserController.updateUserByShopName( shop.split('.')[0], accessToken  ).then( response => {
        /*
        *  Instalo el servicio que utilizara Shopify
        *  para calcular el costo de envio con los proveedores de Pakke.
@@ -288,7 +292,6 @@ router.get('/install/getAccessTokenCallBack', function(req, res) {
           const logtext= "CREACION DE WEBHOOK PARA ORDEN: NO";
            fs.appendFile('installations.log', logtext, (err) => {
                if (err) throw err;
-               console.log('The lyrics were updated!');
            });
            res.render('welcome')
          })
@@ -302,11 +305,13 @@ router.get('/install/getAccessTokenCallBack', function(req, res) {
          ShopifyController.createWebhook(data).then( result => {
            const logtext= "CREACION DE WEBHOOK PARA ORDEN: OK \n --- FIN NUEVA INSTALACION ---";
            fs.appendFile('installations.log', logtext, (err) => { if (err){throw err;}});
+           // TODO: mensaje de instalacion exitosa
            res.render('welcome')
          }).catch( err => {
            const logtext= "CREACION DE WEBHOOK PARA ORDEN: NO";
            fs.appendFile('installations.log', logtext, (err) => { if(err){ throw err; }})
            });
+           // TODO: mensaje de instalacion exitosa
            res.render('welcome')
          })
        })
@@ -323,13 +328,14 @@ router.get('/install/getAccessTokenCallBack', function(req, res) {
    res.status(400).send('Required parameters missing');
  }
 
- router.get('admin', function(req, res){
+ router.get('/admin', function(req, res){
    console.log("App Admin")
    // TODO: traer informacion del usuario que esta logeado en la tienda. Posible uso del SDK
    res.status(200).render('admin');
  })
 
  /**
+ * TODO:
  *  Instalar servicios de pakke en shopify
  *  Esta funcion la deberia ejecutar el cliente desde el dashboard de Shopify
  *  o se ejecutara al mismo tiempo de la instalacion
@@ -354,167 +360,120 @@ router.get('/install/getAccessTokenCallBack', function(req, res) {
   })
 })
 
-router.post('/order_paid_webhook', function(req,res){
-  console.log("Webhook order paid");
-  console.log(req.body);
-
-S
-
-})
-
-
 /*
-*   Esta fn es para desarrollo, lista los webhooks de un usuario especificado poder
-*   su @accessToken
+*   WEBHOOK orden pagada
+*   Creacion orden en Pakke
+*   Sera necesario obtener el usuario al que le corresponde esta orden para Obtener
+*   los accesos necesarios.
+*
 */
-router.get('/dev/get_shopify_webhooks', function(req, res){
-
-  ShopifyController.list_wehbooks().then( webhooks =>{
-    console.log('webhooks', webhooks );
-    res.send(JSON.stringify(webhooks))
-  }).catch( err =>{
-    console.log('erros', err );
-    res.send(JSON.stringify(err))
-  })
-})
-
-
-/*
-* Esta fn es de desarrollo para crear los webhooks por un usuario especificado
-* por su @accessToken
-*/
-router.get('/dev/create_shopify_webhook', function( req, res){
-
-    ShopifyController.createWebhook({
-      shop_name: 'pakkeapi',
-      shopify_token : '08dd51cda105586b623e2da563c99d2d'
-    }).then( result => {
-      res.send(JSON.stringify(result))
-    }).catch( err => {
-      res.send(JSON.stringify(err))
-    })
-})
-
-router.get('/dev/list_providers', function(req, res){
-  const services = ShopifyController.listServices().then( resolve=>{
-    res.send(JSON.stringify(resolve));
-  }).catch( error => {
-    /*
-    *  error.errors.base
-    */
-    res.send(JSON.stringify(error));
-  });
-})
-
-router.get('/dev/delete_provider/:provider_id', function(req, res){
-
-  const services = ShopifyController.deleteProvider(req.params.provider_id).then( resolve=>{
-    res.send(JSON.stringify(resolve));
-  }).catch( error => {
-    /*
-    *  error.errors.base
-    */
-    res.send(JSON.stringify(error));
-  });
-})
-
-router.get('/dev/update_provider/:provider_id', function(req, res){
-  const provider_id = req.params.provider_id;
-  const services = ShopifyController.updateProvider(provider_id ).then( resolve=>{
-    res.send(JSON.stringify(resolve));
-  }).catch( error => {
-    /*
-    *  error.errors.base
-    */
-    res.send(JSON.stringify(error));
-  });
-})
-
-
-router.get('/dev/delete_webhook/:webhook_id', function( req, res){
-  const webhook_id = req.params.webhook_id;
-  const webhook_deleted = ShopifyController.deleteWebhook(webhook_id).then( resolve=>{
-    res.send( JSON.stringify( resolve ) )
-  }).catch( err => {
-    res.send( JSON.stringify( err ) )
-  })
-})
-
-router.get('/dev', function(req, res){
-  const service = {
-         name:'Pakke re',
-         callback_url: APP_URL + '/pakkeShopify/calculate_rates_callback',
-         service_discovery: true
-  }
-  const services = ShopifyController.createService( service, '87ddda4b78f9668d1a4ac72a9bb4c13d', 'pakkeapi' ).then( resolve=>{
-    res.send(JSON.stringify(services));
-  }).catch( error => {
-    /*
-    *  error.errors.base
-    */
-    res.send(JSON.stringify(error));
-  });
-})
-
-
-/*
-* Callback que recibe productos y una direccion del customer para calcular costos de envio de
-* los diferentes servicios
-*/
-router.post('/calculate_rates_callback', function(req, res){
-  console.log("calculando rates")
-  const order_items = req.body.rate.items;
-
-  console.log("order items", req.body);
-  /* Pakke solo espera conocer la cantidad en kg */
-  const totalWeight = order_items.reduce( function( kg, item ){
-      return kg + ( item.grams / 1000 )
-  },0)
-
-  console.log("total weight", totalWeight);
-
-  if( req.body ){
-    // Envio datos a pakke para que me calcule el precio
-    PakkeController.getProvidersShippingPrices( result ).then( response =>{
-      cosnole.log('pakke response ',resullt)
-      res.send( JSON.stringify(result ) )
-    }).catch( err => {
-      res.send( JSON.stringify({'error':true, 'message': 'no fue posible encontrar rates' }) )
-    })
-  }else{
-    res.send( JSON.stringify({'error':true, 'message': 'no fue posible encontrar rates' }) )
-  }
-})
-
-
-
-router.get('/dev/create_order_pakke', function(req, res){
-    PakkeController.createOrder( ).then(  order =>{
-      res.setHeader('Content-Type', 'application/json');
-      console.log( order);
-      res.send( order  );
-    }).catch( function(err){
-      res.setHeader('Content-Type', 'application/json');
-      res.send( JSON.stringify( err ) )
-    })
-})
-
-
 router.post('/webhook/payment', function(req, res){
   console.log('order payment webhook')
-  const items = req.body.line_items;
-  const shipping_provider = req.body.shipping_lines;
-  const shipping_address = req.body.shipping_address;
+
+  // se debera crear el parcel ( peso del envio ) a partir de los items de la orden
+  var grams = 0;
+  req.body.line_items.forEach( ( el) =>{
+    grams += el.grams
+  })
+
+  const parcel = {
+    "Length": 1,
+    "Width": 1,
+    "Height": 1,
+    "Weight": grams / 1000, // convierto a kg
+  }
+
+  const shipping_lines = req.body.shipping_lines;
+  const customer_shipping_address = req.body.shipping_address;
+  const customer_data = req.body.customer;
   const shop_url = req.rawHeaders[5];
   const shop_name = shop_url.split('.')[0];
-  console.log(shop_name)
-  const options = {
-    url:''
-  };
-  req( option ).then( res => {
 
-  }).catch( err => {
+  console.log('parcel', parcel);
+  console.log("customer_shipping_address", customer_shipping_address);
+  console.log("customer_data", customer_data);
+  console.log("shop_url", shop_url);
+  console.log("shop_name", shop_name);
 
+  // Obtengo informacion del usuario que pertenece esta orden
+  UserController.getUserByShopName( shop_name )
+  .then( user => {
+    console.log("user", user );
+    const api_key_pakke = user.key_pake;
+    PakkeController.getServiceById( api_key_pakke, shipping_lines.code)
+    .then( service_data  => {
+      console.log("service data", service_data[0])
+      var shipping_provider  =  {
+            "CourierCode": service_data[0].CourierCode,
+            "CourierServiceId": service_data[0].CourierServiceId,
+            "ResellerReference": "REF-V6BN9R1HB2OZQ",
+      }
+      console.log("shipping provider", shipping_provider)
+      ShopifyController.getShopData(user)
+      .then( shop_data_result  => {
+
+        const sender = {
+          "Name": shop_data_result.shop_owner || "no name",
+          "CompanyName": shop_data_result.name || "no company name",
+          "Phone1": shop_data_result.phone || '5545789636',
+          "Phone2": "",
+          "Email": shop_data_result.email
+        };
+
+        const recipient = {
+          "Name": customer_shipping_address.first_name,
+          "CompanyName": customer_shipping_address.first_name,
+          "Phone1": "5555555555",
+          "Email": customer_data.email
+        };
+
+        const address_from = {
+          "ZipCode": shop_data_result.zip,
+          "State": "MX-MEX",
+          "City": shop_data_result.city,
+          "Neighborhood": shop_data_result.province,
+          "Address1": shop_data_result.address1,
+          "Address2":  shop_data_result.address2,
+          "Residential": true
+        }
+
+        const address_to = {
+          "ZipCode": customer_shipping_address.zip,
+          "State": "MX-MEX",
+          "City": customer_shipping_address.city,
+          "Neighborhood": customer_shipping_address.province,
+          "Address1": customer_shipping_address.address1,
+          "Address2":  customer_shipping_address.address2,
+          "Residential": false
+        }
+
+        const order_data =  {
+          shipping_provider: shipping_provider,
+          parcel: parcel,
+          sender:sender,
+          recipient:recipient,
+          address_from:address_from,
+          address_to:address_to,
+          pakke_api_key: api_key_pakke
+        }
+        PakkeController.createOrder( order_data ).then( result => {
+          console.log("create order pakke result ", result );
+        }).catch( err => {
+          console.log("create order pakke error ", err );
+        })
+      })
+      .catch( err => {
+        console.log("err shop_data ", err )
+      })
+    })
+    .catch( err => {
+      console.log("err", err)
+        // TODO: Manejo de error
+    })
+    // res.send( JSON.stringify( user ))
+  })
+  .catch( err => {
+    console.log("err", err)
   })
 })
 

@@ -19,7 +19,7 @@ module.exports = function(){
   /*
   *   Obtener informacion de un usuario
   */
-  const read = function( user ){
+  const getUser = function( user ){
     return new Promise( function(resolve, reject){
       User.findById( user.id ,(err, users) => {
         if (err) return reject(err)
@@ -29,24 +29,10 @@ module.exports = function(){
   }
 
 
-  const findByShopName = function( shop ){
-    return new Promise( function(resolve, reject){
-      console.log('buscando usuario');
-      console.log('shop name', shop);
-      User.findOne( {'shop': shop }, (err, user) => {
-        if(err){
-          reject(err)
-        }else{
-          resolve(user);
-        }
-      })
-    })
-  }
-
   /*
   * Actualizo la informacion de un usuario
   */
-  const update_by_shop_name = function( shop, token ){
+  const updateUserByShopName = function( shop, token ){
 
     return new Promise( (resolve, reject)=>{
       User.update({ shop: shop}, {token_shopify: token}, function(err, numberAffected, rawResponse) {
@@ -61,15 +47,20 @@ module.exports = function(){
   *  Obtengo usuario por nombre de tienda
   *  Esta funcion es util en el formulario de registro
   */
-  const getUserByShop = function( shopName ){
+  const getUserByShopName = function( shopName ){
     return new Promise( (resolve, reject)=>{
+      console.log("shopName", shopName );
        User.findOne({"shop":shopName}).then( result => {
          console.log("result getUserByShop",result)
-          if ( result.token_shopify.lenght > 0 ){
+          if ( result.token_shopify.length > 0 ){
             resolve(result);
           }else{
             // Puede que no tenga el access token, permitir continuar con la instalacion
-            reject({ error:true, error_message:"Falta el access token, seguir con la instalacion"})
+            resolve({
+              error:true,
+              error_message:"Falta el access token, seguir con la instalacion",
+              data: result
+            })
           }
        }).catch( err => {
          console.log("err getUserByShop",err)
@@ -86,11 +77,10 @@ module.exports = function(){
   const deleteUser = function(){}
 
   return {
-    createUser : createUser,
-    read   : read,
-    update_by_shop_name : update_by_shop_name,
-    delete : deleteUser,
-    findByShopName: findByShopName,
-    getUserByShop:getUserByShop
+    createUser           : createUser,
+    getUser              : getUser,
+    updateUserByShopName : updateUserByShopName,
+    deleteUser           : deleteUser,
+    getUserByShopName    :getUserByShopName
   }
 }

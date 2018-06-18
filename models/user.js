@@ -17,7 +17,7 @@ var mongoose = require('mongoose')
                       throw err;
                   }
                   else if(user) {
-                      if(self.id === user.id) {  // if finding and saving then it's valid even for existing email
+                      if(self.id === user.id) {
                           return isValid(true);
                       }
                       return isValid(false);

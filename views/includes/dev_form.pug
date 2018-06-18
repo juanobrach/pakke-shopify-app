@@ -1,0 +1,41 @@
+div.container
+  form( action="#" name="dev_form" id="setup_form")
+    .form-group
+      h6 Nombre de la tienda
+      .input-group
+        .input-group-prepend
+          .input-group-text https://
+        input#shopify_shop_name_dev.form-control( required type='text' name="shop_name")
+        .input-group-append
+          .input-group-text .myshopify.com
+    .form-group
+      div.form-row
+        div.col.align-self-end
+        button(type="button" class="btn btn-primary btn-dev-form-submit" ) Obtener informacion
+    div#result_dev_form.container
+      .form-group
+        h6 Nombre usuario
+        .input-group
+          input(type="text" name="user_name" )
+      .form-group
+        h6 Correo usuario
+        .input-group
+          input(type="mail" name="user_mail" )
+      .form-group
+        h6 Pakke api key
+        .input-group
+          input(type="text" name="pakke_api_key" )
+      .form-group
+        h6 Tokken shopify
+        .input-group
+          input(type="text" name="shopify_token" )
+      .form-group
+        h6 Webhook paid/order callback URL
+        .input-group
+          input(type="text" name="shopify_webhook_paid_cb_url" )
+      .form-group
+        h6 Webhook shipping rate provider callback URL
+        .input-group
+          input(type="text" name="shopify_rate_provider_url" )
+          
+     

@@ -60,14 +60,16 @@ module.exports = function(){
        }
        request(options)
        .then( ( response ) => {
+         console.log(response);
          var providers_object = {}
          var providers = response.Pakke.map( el => {
            return {
              "service_name": el.CourierName,
              "description":  el.CourierServiceName + " " +  el.DeliveryDays,
-             "service_code": el.CourierCode,
+             "service_code": el.CourierServiceId,
              "currency":"MXN",
-             "total_price": el.TotalPrice ,
+             // TODO: fix en la devolucion, pareciera que al total se lo divide por 100.
+             "total_price": el.TotalPrice * 100,
            }
          })
          providers_object.rates =  providers;
@@ -79,10 +81,16 @@ module.exports = function(){
   }
 
 
+  /*
+  *   Esta funcion se encarga de crear una orden en pakke.
+  *   Sera necesario guardar la orden de shopify relacionada con la orden a crear de Pakke.
+  *   Cuando se quiera cambiar el tracking sera necesario para identificar el destino del webhook // QUESTION:
+  *   ofrece Pakke dando aviso a los cambios en el estado del envio
+  *    @pake_api_key ( order_data.user )
+  */
   const createOrder = function( order_data ){
 
     console.log('order data webhook send:', order_data );
-
 
     return new Promise( function( resolve, reject ){
 
@@ -91,65 +99,67 @@ module.exports = function(){
         'method': 'POST',
         'uri': PAKKE_API_URL + '/Shipments',
         'body': {
+          // order_data.shipping_provider
           "CourierCode": "FDX",
           "CourierServiceId": "FEDEX_EXPRESS_SAVER",
           "ResellerReference": "REF-V6BN9R1HB2OZQ",
-          "Parcel": {
-           "Length": 1,
-           "Width": 1,
-           "Height": 1,
-           "Weight": 1
-          },
-          "Sender": {
-           "Name": "Arturo",
-           "CompanyName": "sanki",
-           "Phone1": "5545789636",
-           "Phone2": "5514785696",
-           "Email": "avillalbazo@next-cloud.mx"
-          },
-          "Recipient": {
-           "Name": "Destino nombre",
-           "CompanyName": "empresa destino",
-           "Phone1": "5555555555",
-           "Email": "destino@prueba.com"
-          },
-          "AddressFrom": {
-           "ZipCode": "11950",
-           "State": "MX-MEX",
-           "City": "Naucalpan de Juárez(MEX",
-           "Neighborhood": "lomas altas",
-           "Address1": "calle origen",
-           "Address2": "ref origen",
-           "Residential": true
-          },
-          "AddressTo": {
-           "ZipCode": "53126",
-           "State": "MX-MEX",
-           "City": "Naucalpan de Juárez(MEX",
-           "Neighborhood": "lomas verdes",
-           "Address1": "calle destino",
-           "Address2": "ref destino",
-           "Residential": false
-          }
+
+          // order_data.parcel
+          "Parcel": order_data.parcel,
+
+          // order_data.order.sender
+          "Sender": order_data.sender,
+          // order_data.recipient
+          "Recipient": order_data.recipient,
+
+          // order_data.address_from
+          "AddressFrom": order_data.address_from,
+
+          // order_data.address_to
+          "AddressTo": order_data.address_to,
           },
          'headers': {
            'content-type':'application/json',
-           'Authorization': 'NJYc54geWEqW2WDR7BiXoSPk7ThfujFirNKdgISJ2I0Qqb7H7ZrzX7zscR5LKcIl'
+           'Authorization': order_data.api_key_pakke || 'NJYc54geWEqW2WDR7BiXoSPk7ThfujFirNKdgISJ2I0Qqb7H7ZrzX7zscR5LKcIl'
          },
          'json': true
        }
+       console.log("options",options)
        request(options)
        .then( ( response ) => {
+         console.log(response)
          resolve( JSON.stringify( response) );
-         reject(err)
         }).catch((err) => {
+          reject(err)
         });
+    })
+  }
+
+  const getServiceById = ( user_api_key , service_id ) => {
+    return new Promise( ( resolve, reject )=>{
+      request({
+        method:'get',
+        uri: PAKKE_API_URL + '/CourierServices',
+        headers: {
+          'content-type':'application/json',
+          'Authorization': user_api_key
+        },
+        json: true // Automatically parses the JSON string in the response
+      }).then( (result) =>{
+        if( result ){
+            const service = result.filter( function(obj){ return obj.CourierServiceId == "FEDEX_STANDARD_OVERNIGHT" })
+            resolve(  service );
+        }
+      }).catch((error) => {
+          reject(JSON.stringify(error));
+      })
     })
   }
 
   return {
     validateApiKey: validateApiKey,
     getProvidersShippingPrices : getProvidersShippingPrices,
+    getServiceById: getServiceById,
     createOrder : createOrder,
   }
 }

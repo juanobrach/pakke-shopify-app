@@ -13,12 +13,20 @@ module.exports = function(){
         console.log("shop name" , shopName );
 
         const shopify = new Shopify({
-          shopName: shopName,
-          accessToken: shopifyToken
+          shopName: shopName || SHOP_NAME,
+          accessToken: shopifyToken || SHOP_TOKEN
         });
 
-        shopify.on('callLimits', limits => console.log(limits));
-        console.log("service",service)
+        /*
+        *  Valido que no exista algun servicio previo a otra instalacion para esta tienda
+        */
+
+        shopify.carrierService.get().then( services => {
+          console.log("services found", services )
+        }).catch( err => {
+          console.log("error finding services", err )
+        })
+
         shopify.carrierService.create(service).then( metafields =>{
             resolve();
           }).catch( err =>{
@@ -29,11 +37,11 @@ module.exports = function(){
 
 
 
-  const listServices = function(){
+  const listServices = function( shopData ){
     return new Promise( function(resolve, reject){
         const shopify = new Shopify({
-          shopName: 'pakkeapi',
-          accessToken: '08dd51cda105586b623e2da563c99d2d'
+          shopName:  shopData.shopName || 'pakkeapi',
+          accessToken: shopData.accessToken || '08dd51cda105586b623e2da563c99d2d'
         });
         shopify.carrierService.list().then( metafields =>{
           resolve(metafields);
@@ -177,8 +185,21 @@ module.exports = function(){
     })
   }
 
-  const getShopAddress = function(){
+  const getShopData = function( user ){
+    return new Promise( (resolve, reject)=>{
+      const shopify = new Shopify({
+        shopName: user.shop,
+        accessToken: user.token_shopify
+      });
 
+
+       shopify.shop.get().then( result =>{
+          resolve( result )
+       }).catch( err =>{
+         console.log( err )
+         reject( err )
+       })
+    })
   }
 
   return {
@@ -190,6 +211,6 @@ module.exports = function(){
     deleteProvider: deleteProvider,
     validateIfShopExists:validateIfShopExists,
     list_wehbooks:list_wehbooks,
-    getShopAddress:getShopAddress
+    getShopData:getShopData
   }
 }
