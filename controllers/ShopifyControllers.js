@@ -21,17 +21,19 @@ module.exports = function(){
         *  Valido que no exista algun servicio previo a otra instalacion para esta tienda
         */
 
-        shopify.carrierService.get().then( services => {
+        shopify.carrierService.list().then( services => {
           console.log("services found", services )
-        }).catch( err => {
-          console.log("error finding services", err )
-        })
-
-        shopify.carrierService.create(service).then( metafields =>{
+          if( services.length > 0 ){
             resolve();
-          }).catch( err =>{
-            reject( err )
-          })
+          }
+        }).catch( err => {
+          shopify.carrierService.create(service).then( metafields =>{
+              resolve();
+            }).catch( err =>{
+              reject( err )
+            })
+
+        })
     })
   }
 
@@ -51,11 +53,11 @@ module.exports = function(){
     })
   }
 
-  const deleteProvider = function( providerId ){
+  const deleteProvider = function( shop_data, providerId ){
     return new Promise( function(resolve, reject){
         const shopify = new Shopify({
-          shopName: SHOP_NAME,
-          accessToken: '08dd51cda105586b623e2da563c99d2d'
+          shopName: shop_data.shop_name,
+          accessToken: shop_data.shopify_token
         });
 
         shopify.carrierService.delete(providerId).then( metafields =>{
@@ -94,19 +96,14 @@ module.exports = function(){
  /*
  *  Esta funcion es solo para desarrollo. El accessToken depende del usuario que se quiera probar.
  */
-  const list_wehbooks = function(user){
+  const list_wehbooks = function(shop_data){
     return new Promise( function(resolve, reject){
-        const shopify = new Shopify({
-          shopName: 'pakkeapi',
-          accessToken: '08dd51cda105586b623e2da563c99d2d'
-        });
-
         var options = {
-          uri: 'https://pakkeapi.myshopify.com/admin/webhooks.json',
+          uri: 'https://'+shop_data+'.myshopify.com/admin/webhooks.json',
           simple: false,    //  <---  <---  <---  <---
           headers: {
-            'X-Shopify-Access-Token':'08dd51cda105586b623e2da563c99d2d',
-            'X-Shopify-Shop-Domain' :'pakkeapi.myshopify.com'
+            'X-Shopify-Access-Token':shop_data.shopify_token,
+            'X-Shopify-Shop-Domain' : shop_data.shop_name + '.myshopify.com'
           },
           resolveWithFullResponse: false
         };
@@ -146,13 +143,13 @@ module.exports = function(){
     })
   }
 
-  const deleteWebhook = function( webhook_id ){
+  const deleteWebhook = function( shop_data, webhook_id ){
 
     return new Promise( (resolve, reject) => {
 
       const shopify = new Shopify({
-        shopName: 'pakkeapi',
-        accessToken: '08dd51cda105586b623e2da563c99d2d'
+        shopName: shop_data.shop_name,
+        accessToken: shop_data.shopify_token
       });
 
       shopify.webhook.delete( webhook_id ).then( result =>{
@@ -165,12 +162,12 @@ module.exports = function(){
     })
   }
 
-  const updateProvider = function( provider_id ){
+  const updateProvider = function( shop_data, provider_id ){
     return new Promise( (resolve, reject)=>{
 
       const shopify = new Shopify({
-        shopName: 'pakkeapi',
-        accessToken: '08dd51cda105586b623e2da563c99d2d'
+        shopName: shop_data.shop_name,
+        accessToken: shop_data.shopify_token
       });
 
       console.log('Provider id', provider_id);
@@ -202,6 +199,126 @@ module.exports = function(){
     })
   }
 
+  const getFulFillment = ( shop_data, order_id ) =>{
+      return new Promise( (resolve, reject ) =>{
+        const shopify = new Shopify({
+          shopName: shop_data.shop_name,
+          accessToken: shop_data.shopify_token
+        });
+
+        console.log("obteniendo fullfilment : " + order_id );
+         shopify.fulfillment.list(order_id).then( result =>{
+           console.log("respuesta", result );
+            resolve( result )
+         }).catch( err =>{
+           console.log( err )
+           reject( err )
+         })
+      })
+  }
+
+  /*
+  *   Shopify soporta 5 estados para la notificacion de un envio
+  *   [ confirmed, in_transit, out_for_delivery,  delivered, failure ]
+  *    Como esta fn se ejecuta luego de crear la orden el Pakke (carrierService ) podemos iniciar
+  *   un fullFilment en estado 'confirmed'.
+  */
+  const createFulFillment = ( shop_data, order_id, fullFilmentOptions ) =>{
+    return new Promise( (resolve, reject ) =>{
+
+      const shopify = new Shopify({
+        shopName: shop_data.shop_name,
+        accessToken: shop_data.shopify_token
+      });
+
+      console.log("creando fullfilment orden: ", order_id );
+       shopify.fulfillment.create(order_id, fullFilmentOptions ).then( result =>{
+         console.log("respuesta", result );
+          resolve( result )
+       }).catch( err =>{
+         console.log( err )
+         reject( err )
+       })
+    })
+  }
+
+
+  const updateFulFillment = ( shop_data, order_id, fulfillment_id, fullFilmentOptions ) =>{
+    return new Promise( (resolve, reject ) =>{
+      const shopify = new Shopify({
+        shopName: shop_data.shop_name,
+        accessToken: shop_data.shopify_token
+      });
+
+
+      console.log("creando fullfilment orden: ", order_id );
+       shopify.fulfillment.update(order_id, fulfillment_id, fullFilmentOptions ).then( result =>{
+         console.log("respuesta", result );
+          resolve( result )
+       }).catch( err =>{
+         console.log( err )
+         reject( err )
+       })
+    })
+  }
+
+  const listfulfillmentEvent = ( shop_data, order_id, fulfillment_id ) =>{
+    return new Promise( (resolve, reject ) =>{
+      const shopify = new Shopify({
+        shopName: shop_data.shop_name,
+        accessToken: shop_data.shopify_token
+      });
+
+      console.log("creando fullfilment orden: ", order_id );
+       shopify.fulfillmentEvent.list(order_id, fulfillment_id).then( result =>{
+         console.log("respuesta", result );
+          resolve( result )
+       }).catch( err =>{
+         console.log( err )
+         reject( err )
+       })
+    })
+  }
+
+
+  const createFulfillmentEvent = ( shop_data, order_id, fulfillment_id, fulfillment_status ) =>{
+    return new Promise( (resolve, reject ) =>{
+      const shopify = new Shopify({
+        shopName: shop_data.shop_name,
+        accessToken: shop_data.shopify_token
+      });
+
+      console.log("creando fullfilment evento en la orden : ", order_id );
+       shopify.fulfillmentEvent.create(order_id, fulfillment_id, fulfillment_status).then( result =>{
+         console.log("respuesta", result );
+          resolve( result )
+       }).catch( err =>{
+         console.log( err )
+         reject( err )
+       })
+    })
+  }
+
+  const getLocations = ( shop_data ) =>{
+    console.log("obteniendo locaciones");
+      return new Promise( (resolve, reject ) =>{
+        const shopify = new Shopify({
+          shopName: shop_data.shop_name,
+          accessToken: shop_data.shopify_token
+        });
+
+
+         shopify.location.list().then( result =>{
+           console.log( result );
+            resolve( result )
+         }).catch( err =>{
+           console.log( err )
+           reject( err )
+         })
+      })
+  }
+
+
   return {
     updateProvider:updateProvider,
     createWebhook:createWebhook,
@@ -211,6 +328,14 @@ module.exports = function(){
     deleteProvider: deleteProvider,
     validateIfShopExists:validateIfShopExists,
     list_wehbooks:list_wehbooks,
-    getShopData:getShopData
+    getShopData:getShopData,
+    getFulFillment: getFulFillment,
+    listfulfillmentEvent:listfulfillmentEvent,
+    createFulfillmentEvent:createFulfillmentEvent,
+    createFulFillment : createFulFillment,
+    updateFulFillment : updateFulFillment,
+    getLocations:getLocations
+    // createTrackig ( norden de shopify corresponda )
+    // updateTracking
   }
 }

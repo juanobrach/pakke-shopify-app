@@ -52,16 +52,26 @@ module.exports = function(){
       console.log("shopName", shopName );
        User.findOne({"shop":shopName}).then( result => {
          console.log("result getUserByShop",result)
-          if ( result.token_shopify.length > 0 ){
-            resolve(result);
-          }else{
-            // Puede que no tenga el access token, permitir continuar con la instalacion
-            resolve({
-              error:true,
-              error_message:"Falta el access token, seguir con la instalacion",
-              data: result
-            })
-          }
+         if( result == null ){
+           reject({
+             error:true,
+             error_message:"No existe el usuario",
+           })
+         }else{
+           if ( result.token_shopify.length > 0 ){
+             resolve(result);
+           }else{
+             // Puede que no tenga el access token, permitir continuar con la instalacion
+             // sera necesario leer el tipo de error para determinar si se continua la fn de instalacion
+
+             reject({
+               error:true,
+               error_number:1,
+               error_message:"Falta el access token, seguir con la instalacion",
+               data: result
+             })
+           }
+         }
        }).catch( err => {
          console.log("err getUserByShop",err)
          reject( {error: true, error_message: err} );
@@ -81,6 +91,6 @@ module.exports = function(){
     getUser              : getUser,
     updateUserByShopName : updateUserByShopName,
     deleteUser           : deleteUser,
-    getUserByShopName    :getUserByShopName
+    getUserByShopName    : getUserByShopName
   }
 }

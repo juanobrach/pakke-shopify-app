@@ -50,7 +50,6 @@ router.post('/shipping_rates_providers_cb', function(req, res){
       zip_code: req.body.rate.destination.postal_code,
       pakke_api_key: user.key_pake || PAKKE_API_KEY
     }
-    console.log(data);
     PakkeController.getProvidersShippingPrices( data  ).then(  shipping_providers =>{
       res.setHeader('Content-Type', 'application/json');
       console.log( shipping_providers);
@@ -152,10 +151,14 @@ router.post('/signup', function(req, res){
     });
     UserController.getUserByShopName( user_data.shop ).then( user => {
       // envio error al ajax del formulario
-      res.redirect('/pakkeShopify/install/authorize/'+ req.body.shop +'/'+user.data._id);
+      res.redirect('/pakkeShopify/install/authorize/'+ req.body.shop +'/'+user._id);
     }).catch( err => {
-      console.log( err );
-    })  ;
+      if ( err.error_number == 1 ){
+        res.redirect('/pakkeShopify/install/authorize/'+ req.body.shop +'/'+err.data._id);
+      }else{
+        console.log( err );
+      }
+    });
   })
 })
 
@@ -168,7 +171,7 @@ router.post('/signup', function(req, res){
 router.get('/install/authorize/:shop_name/:user_id', function(req, res) {
   const shop = req.params.shop_name;
   const user_id = req.params.user_id;
-  const scopes = 'read_products,write_shipping,read_shipping,read_orders';
+  const scopes = 'read_products,write_shipping,read_shipping,read_orders,write_orders,read_fulfillments, write_fulfillments';
   if (shop) {
 
     const state = nonce();
@@ -361,17 +364,34 @@ router.get('/install/getAccessTokenCallBack', function(req, res) {
 })
 
 /*
+*   Metodo para actualizar el tracking order
+*   @params( refid:1231 )
+*   @params([ 1, 2, ...])
+*
+*/
+router.post('/pakke_webhook', function(req,res){
+  pakke = {
+    takcl:status,
+    refId: 123123.
+  }
+  ShopifyController.updateTracking(pake);
+  res.send(JSON.stringify({error:false, message:'pakke webhook send'}))
+})
+
+/*
 *   WEBHOOK orden pagada
 *   Creacion orden en Pakke
 *   Sera necesario obtener el usuario al que le corresponde esta orden para Obtener
 *   los accesos necesarios.
-*
+*    TODO: guardar n de orden de shopify para asociarlo con el n de orden de pakke
 */
+
 router.post('/webhook/payment', function(req, res){
   console.log('order payment webhook')
 
   // se debera crear el parcel ( peso del envio ) a partir de los items de la orden
   var grams = 0;
+  // console.log( req.body.line_items );
   req.body.line_items.forEach( ( el) =>{
     grams += el.grams
   })
@@ -380,7 +400,9 @@ router.post('/webhook/payment', function(req, res){
     "Length": 1,
     "Width": 1,
     "Height": 1,
-    "Weight": grams / 1000, // convierto a kg
+  //  "Weight": grams / 1000, // convierto a kg
+    "Weight": 10, // convierto a kg
+
   }
 
   const shipping_lines = req.body.shipping_lines;
@@ -389,26 +411,26 @@ router.post('/webhook/payment', function(req, res){
   const shop_url = req.rawHeaders[5];
   const shop_name = shop_url.split('.')[0];
 
-  console.log('parcel', parcel);
-  console.log("customer_shipping_address", customer_shipping_address);
-  console.log("customer_data", customer_data);
-  console.log("shop_url", shop_url);
-  console.log("shop_name", shop_name);
+  // console.log('parcel', parcel);
+  // console.log("customer_shipping_address", customer_shipping_address);
+  // console.log("customer_data", customer_data);
+  // console.log("shop_url", shop_url);
+  // console.log("shop_name", shop_name);
 
   // Obtengo informacion del usuario que pertenece esta orden
   UserController.getUserByShopName( shop_name )
   .then( user => {
-    console.log("user", user );
+    // console.log("user", user );
     const api_key_pakke = user.key_pake;
     PakkeController.getServiceById( api_key_pakke, shipping_lines.code)
     .then( service_data  => {
-      console.log("service data", service_data[0])
+      // console.log("service data", service_data[0])
       var shipping_provider  =  {
             "CourierCode": service_data[0].CourierCode,
             "CourierServiceId": service_data[0].CourierServiceId,
             "ResellerReference": "REF-V6BN9R1HB2OZQ",
       }
-      console.log("shipping provider", shipping_provider)
+      // console.log("shipping provider", shipping_provider)
       ShopifyController.getShopData(user)
       .then( shop_data_result  => {
 
@@ -438,7 +460,7 @@ router.post('/webhook/payment', function(req, res){
         }
 
         const address_to = {
-          "ZipCode": customer_shipping_address.zip,
+          "ZipCode": "06140" || customer_shipping_address.zip,
           "State": "MX-MEX",
           "City": customer_shipping_address.city,
           "Neighborhood": customer_shipping_address.province,
@@ -458,12 +480,19 @@ router.post('/webhook/payment', function(req, res){
         }
         PakkeController.createOrder( order_data ).then( result => {
           console.log("create order pakke result ", result );
+          const tacking_id = result.TrackingNumber;
+          const parcel     = result.Parcel;
+
+
+          res.status("200").send("ok");
         }).catch( err => {
-          console.log("create order pakke error ", err );
+          console.log("create order pakke error" ,err);
+          res.status("200").send("ok");
+
         })
       })
       .catch( err => {
-        console.log("err shop_data ", err )
+        console.log("err shop_data ")
       })
     })
     .catch( err => {
@@ -473,7 +502,7 @@ router.post('/webhook/payment', function(req, res){
     // res.send( JSON.stringify( user ))
   })
   .catch( err => {
-    console.log("err", err)
+    console.log("err")
   })
 })
 

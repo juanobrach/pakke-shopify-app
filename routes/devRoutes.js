@@ -62,9 +62,12 @@ router.get('/create_user', function(req, res) {
 *   Esta fn es para desarrollo, lista los webhooks de un usuario especificado poder
 *   su @accessToken
 */
-router.get('/get_shopify_webhooks', function(req, res){
-
-  ShopifyController.list_wehbooks().then( webhooks =>{
+router.get('/get_shopify_webhooks/:shop_name/:shopify_token', function(req, res){
+  console.log(req.params)
+  ShopifyController.list_wehbooks({
+    shopify_token: req.params.shopify_token,
+    shop_name: req.params.shop_name
+  }).then( webhooks =>{
     console.log('webhooks', webhooks );
     res.send(JSON.stringify(webhooks))
   }).catch( err =>{
@@ -125,10 +128,114 @@ router.get('/update_provider/:provider_id', function(req, res){
   });
 })
 
+/*
+*  Obtengo el fullfilment de una orden.
+*  El id es necesario para luego actualizar el tracking del envio
+*/
+router.get('/get_fulfilment/:shop_name/:shopify_token/:order_id',(req,res)=>{
+  const order_id = req.params.order_id;
+  const shop_data = {
+    shopify_token : req.params.shopify_token,
+    shop_name     : req.params.shop_name
+  };
 
-router.get('/delete_webhook/:webhook_id', function( req, res){
+  ShopifyController.getFulFillment(shop_data, order_id).then( resolve=>{
+    res.send( JSON.stringify( resolve ) )
+  }).catch( err => {
+    res.send( JSON.stringify( err ) )
+  })
+})
+
+/*
+*  Este metodo nos devuelve el estado de un fullfilment, podria decirse que dentro de esta informacion
+*  se encuentra la necesaria para conocer el estado de un envio (tracking)
+*/
+router.get('/list_fulfilmentEvent/:shop_name/:shopify_token/:order_id/:fulfillment_id',(req,res)=>{
+  const order_id = req.params.order_id;
+  const fulfillment_id = req.params.fulfillment_id;
+  const shop_data = {
+    shopify_token : req.params.shopify_token,
+    shop_name     : req.params.shop_name
+  };
+
+  const fullFilmentOptions = {};
+
+  ShopifyController.listfulfillmentEvent(shop_data, order_id, fulfillment_id, fullFilmentOptions ).then( resolve=>{
+    res.send( JSON.stringify( resolve ) )
+  }).catch( err => {
+    res.send( JSON.stringify( err ) )
+  })
+})
+
+/*
+* Al crear un evento lo que podemos hacer es cambiar el estado fulfillment de una orden.
+* Los estados / eventos que acepta Shopify son :
+* [ confirmed, in_transit, out_for_delivery,  delivered, failure ]
+**/
+router.get('/create_fulfilmentEvent/:shop_name/:shopify_token/:order_id/:fulfillment_id/:event',(req,res)=>{
+  const order_id = req.params.order_id;
+  const fulfillment_id = req.params.fulfillment_id;
+  const shop_data = {
+    shopify_token : req.params.shopify_token,
+    shop_name     : req.params.shop_name
+  };
+
+
+  const fullFilmentOptions = {
+    "status": req.params.event
+  };
+
+  ShopifyController.createFulfillmentEvent(shop_data, order_id, fulfillment_id, fullFilmentOptions ).then( resolve=>{
+    res.send( JSON.stringify( resolve ) )
+  }).catch( err => {
+    res.send( JSON.stringify( err ) )
+  })
+})
+
+
+
+router.get('/create_fulfilment/:shop_name/:shopify_token/:order_id',(req,res)=>{
+  const order_id = req.params.order_id;
+  const shop_data = {
+    shopify_token : req.params.shopify_token,
+    shop_name     : req.params.shop_name
+  };
+
+  const fullFilmentOptions = {
+    "location_id": 9850290294,
+   "tracking_number": "781480358049",
+   "notify_customer": true
+  };
+
+  ShopifyController.createFulFillment(shop_data, order_id, fullFilmentOptions ).then( resolve=>{
+    res.send( JSON.stringify( resolve ) )
+  }).catch( err => {
+    res.send( JSON.stringify( err ) )
+  })
+})
+
+router.get('/get_locations/:shop_name/:shopify_token',(req,res)=>{
+  const shop_data = {
+    shopify_token : req.params.shopify_token,
+    shop_name     : req.params.shop_name
+  };
+
+  ShopifyController.getLocations(shop_data).then( resolve=>{
+    res.send( JSON.stringify( resolve ) )
+  }).catch( err => {
+    res.send( JSON.stringify( err ) )
+  })
+})
+
+
+router.get('/delete_webhook/:shop_name/:shopify_token/:webhook_id', function( req, res){
   const webhook_id = req.params.webhook_id;
-  const webhook_deleted = ShopifyController.deleteWebhook(webhook_id).then( resolve=>{
+  const shop_data = {
+    shopify_token : req.params.shopify_token,
+    shop_name     : req.params.shop_name
+  };
+
+  const webhook_deleted = ShopifyController.deleteWebhook(shop_data, webhook_id).then( resolve=>{
     res.send( JSON.stringify( resolve ) )
   }).catch( err => {
     res.send( JSON.stringify( err ) )

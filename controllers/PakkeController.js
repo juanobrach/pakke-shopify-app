@@ -90,8 +90,6 @@ module.exports = function(){
   */
   const createOrder = function( order_data ){
 
-    console.log('order data webhook send:', order_data );
-
     return new Promise( function( resolve, reject ){
 
 
@@ -124,12 +122,11 @@ module.exports = function(){
          },
          'json': true
        }
-       console.log("options",options)
        request(options)
        .then( ( response ) => {
-         console.log(response)
-         resolve( JSON.stringify( response) );
+         resolve(  response );
         }).catch((err) => {
+          console.log('error')
           reject(err)
         });
     })

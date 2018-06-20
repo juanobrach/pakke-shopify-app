@@ -8,8 +8,6 @@ $(document).ready( function(){
   $('.btn-setup-form-submit').click( function(e){
       e.preventDefault();
       var data = {
-        name: $("input[name='user_name']").val(),
-        email:$("input[name='user_email']").val(),
         shop: $("input[name='shopify_shop_name']").val(),
         key_pake: $("input[name='pakke_api_key']").val(),
         token_shopify: ''
@@ -51,7 +49,7 @@ $(document).ready( function(){
         console.log(res)
         if( !res.error ){
           console.log( "usuario", res );
-          
+
         }else{
           console.log("error",res.error_message);
         }
