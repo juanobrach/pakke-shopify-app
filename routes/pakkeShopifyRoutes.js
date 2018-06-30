@@ -422,7 +422,7 @@ router.post('/webhook/payment', function(req, res){
     const api_key_pakke = user.key_pake;
     const token_shopify = user.token_shopify
     // Obtengo informacion del servicio que utiliza la orden
-    PakkeController.getServiceById( api_key_pakke, shipping_lines.code)
+    PakkeController.getServiceById( api_key_pakke, shipping_lines[0].code)
     .then( service_data  => {
       // console.log("service data", service_data[0])
       var shipping_provider  =  {

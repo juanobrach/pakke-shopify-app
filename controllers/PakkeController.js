@@ -89,7 +89,6 @@ module.exports = function(){
   *    @pake_api_key ( order_data.user )
   */
   const createOrder = function( order_data ){
-
     return new Promise( function( resolve, reject ){
 
 
@@ -98,8 +97,8 @@ module.exports = function(){
         'uri': PAKKE_API_URL + '/Shipments',
         'body': {
           // order_data.shipping_provider
-          "CourierCode": "FDX",
-          "CourierServiceId": "FEDEX_EXPRESS_SAVER",
+          "CourierCode": order_data.shipping_provider.CourierCode,
+          "CourierServiceId": order_data.shipping_provider.CourierServiceId,
           "ResellerReference": order_data.shopify_order_id,
 
           // order_data.parcel
@@ -144,7 +143,7 @@ module.exports = function(){
         json: true // Automatically parses the JSON string in the response
       }).then( (result) =>{
         if( result ){
-            const service = result.filter( function(obj){ return obj.CourierServiceId == "FEDEX_STANDARD_OVERNIGHT" })
+            const service = result.filter( function(obj){ return obj.CourierServiceId == service_id })
             resolve(  service );
         }
       }).catch((error) => {
