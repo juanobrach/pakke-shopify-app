@@ -20,8 +20,8 @@ app.use(bodyParser.urlencoded({     // to support URL-encoded bodies
 }));
 
 // app.use(require('./middlewares'));
-app.use(require('./routes'));
+app.use( require('./routes') );
 
 app.listen(3000, () => {
-  console.log('App listening on port 3000!');
+  console.log('App listening on http://localhost:3000');
 });

@@ -129,7 +129,7 @@ router.post('/signup', function(req, res){
   });
 
   const user_data = {
-    shop: req.body.shop.toLowerCase,
+    shop: req.body.shop.toLowerCase(),
     key_pake: req.body.key_pake,
     token_shopify: ''
   }
@@ -254,7 +254,6 @@ router.get('/install/getAccessTokenCallBack', function(req, res) {
        *  Instalo el servicio que utilizara Shopify
        *  para calcular el costo de envio con los proveedores de Pakke.
        */
-
        const logtext= "USUARIO ACTUALIZADO DATA TOKEN: OK";
        fs.appendFile('installations.log', logtext, (err) => {
            if (err) throw err;
