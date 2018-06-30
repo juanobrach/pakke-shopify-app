@@ -13,7 +13,7 @@ $(document).ready( function(){
   $('.btn-setup-form-submit').click( function(e){
       e.preventDefault();
       var data = {
-        shop: $("input[name='shopify_shop_name']").val(),
+        shop: $("input[name='shopify_shop_name']").val().toLowerCase(),
         key_pake: $("input[name='pakke_api_key']").val(),
         token_shopify: ''
       }

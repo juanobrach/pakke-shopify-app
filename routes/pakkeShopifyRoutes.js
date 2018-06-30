@@ -129,9 +129,7 @@ router.post('/signup', function(req, res){
   });
 
   const user_data = {
-    name: req.body.name,
-    email: req.body.email,
-    shop: req.body.shop,
+    shop: req.body.shop.toLowerCase,
     key_pake: req.body.key_pake,
     token_shopify: ''
   }
