@@ -31,6 +31,12 @@ module.exports = function(){
                   reject( err )
                 })
             });
+          }else{
+            shopify.carrierService.create(service).then( metafields =>{
+              resolve();
+            }).catch( err =>{
+              reject( err )
+            })
           }
         }).catch( err => {
           shopify.carrierService.create(service).then( metafields =>{
