@@ -100,7 +100,7 @@ module.exports = function(){
           // order_data.shipping_provider
           "CourierCode": "FDX",
           "CourierServiceId": "FEDEX_EXPRESS_SAVER",
-          "ResellerReference": "REF-V6BN9R1HB2OZQ",
+          "ResellerReference": order_data.shopify_order_id,
 
           // order_data.parcel
           "Parcel": order_data.parcel,

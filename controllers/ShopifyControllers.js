@@ -24,7 +24,13 @@ module.exports = function(){
         shopify.carrierService.list().then( services => {
           console.log("services found", services )
           if( services.length > 0 ){
-            resolve();
+            shopify.carrierService.delete( services[0].id ).then( _s =>{
+              shopify.carrierService.create(service).then( metafields =>{
+                  resolve();
+                }).catch( err =>{
+                  reject( err )
+                })
+            });
           }
         }).catch( err => {
           shopify.carrierService.create(service).then( metafields =>{
@@ -32,7 +38,6 @@ module.exports = function(){
             }).catch( err =>{
               reject( err )
             })
-
         })
     })
   }

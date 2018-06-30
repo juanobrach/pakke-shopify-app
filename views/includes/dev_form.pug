@@ -5,7 +5,7 @@ div.container
       .input-group
         .input-group-prepend
           .input-group-text https://
-        input#shopify_shop_name_dev.form-control( required type='text' name="shop_name")
+        input#shopify_shop_name_dev.form-control( required data-validation-url="/pakkeShopify/validate_shop_url" data-validation="server"  type='text' name="shop_name")
         .input-group-append
           .input-group-text .myshopify.com
     .form-group

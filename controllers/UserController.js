@@ -63,7 +63,6 @@ module.exports = function(){
            }else{
              // Puede que no tenga el access token, permitir continuar con la instalacion
              // sera necesario leer el tipo de error para determinar si se continua la fn de instalacion
-
              reject({
                error:true,
                error_number:1,

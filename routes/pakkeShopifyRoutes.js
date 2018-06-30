@@ -387,7 +387,7 @@ router.post('/pakke_webhook', function(req,res){
 */
 
 router.post('/webhook/payment', function(req, res){
-  console.log('order payment webhook')
+  console.log('order payment webhook', req.body)
 
   // se debera crear el parcel ( peso del envio ) a partir de los items de la orden
   var grams = 0;
@@ -400,8 +400,8 @@ router.post('/webhook/payment', function(req, res){
     "Length": 1,
     "Width": 1,
     "Height": 1,
-  //  "Weight": grams / 1000, // convierto a kg
-    "Weight": 10, // convierto a kg
+    "Weight": grams / 1000, // convierto a kg
+    // "Weight": 10, // convierto a kg
 
   }
 
@@ -410,6 +410,7 @@ router.post('/webhook/payment', function(req, res){
   const customer_data = req.body.customer;
   const shop_url = req.rawHeaders[5];
   const shop_name = shop_url.split('.')[0];
+  const order_id   = req.body.id;
 
   // console.log('parcel', parcel);
   // console.log("customer_shipping_address", customer_shipping_address);
@@ -422,6 +423,8 @@ router.post('/webhook/payment', function(req, res){
   .then( user => {
     // console.log("user", user );
     const api_key_pakke = user.key_pake;
+    const token_shopify = user.token_shopify
+    // Obtengo informacion del servicio que utiliza la orden
     PakkeController.getServiceById( api_key_pakke, shipping_lines.code)
     .then( service_data  => {
       // console.log("service data", service_data[0])
@@ -476,15 +479,37 @@ router.post('/webhook/payment', function(req, res){
           recipient:recipient,
           address_from:address_from,
           address_to:address_to,
-          pakke_api_key: api_key_pakke
+          pakke_api_key: api_key_pakke,
+          shopify_order_id:order_id
         }
         PakkeController.createOrder( order_data ).then( result => {
           console.log("create order pakke result ", result );
-          const tacking_id = result.TrackingNumber;
+          const tacking_number = result.TrackingNumber;
+          const shopify_order_id = result.ResellerReference;
           const parcel     = result.Parcel;
 
+          // Crear fullfilment en Shopify con tracking de la orden
 
-          res.status("200").send("ok");
+          const shop_data = {
+            shopify_token : token_shopify,
+            shop_name     : shop_name
+          };
+          ShopifyController.getLocations(shop_data).then( location => {
+            console.log("location",location);
+
+            const fullFilmentOptions = {
+             "location_id": location[0].id,
+             "tracking_number": tacking_number,
+             "notify_customer": true
+            };
+
+            console.log("fullFilmentOptions", fullFilmentOptions );
+            ShopifyController.createFulFillment(shop_data, shopify_order_id, fullFilmentOptions ).then( resolve=>{
+              res.status("200").send(resolve);
+            }).catch( err => {
+              res.status("200").send( JSON.stringify( err ) )
+            })
+          })
         }).catch( err => {
           console.log("create order pakke error" ,err);
           res.status("200").send("ok");

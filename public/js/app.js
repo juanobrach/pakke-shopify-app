@@ -5,6 +5,11 @@ $(document).ready( function(){
     validateOnBlur : true
   });
 
+  /*
+  *  Formulario alta de tienda shopify / pakke  a la aplicacion
+  *  se ejecuta esta funcion si se es validado el formulario
+  *  views/includes/adminDev.pug
+  */
   $('.btn-setup-form-submit').click( function(e){
       e.preventDefault();
       var data = {
@@ -34,6 +39,13 @@ $(document).ready( function(){
         }
       })
   })
+
+  /*
+  * TODO:
+  * Formulario para desarrollador.
+  * Captura toda la informacion de una tienda especifica si existe en nuestra db
+  */
+
   $(".btn-dev-form-submit").click( function(e){
     e.preventDefault();
     var data = {
@@ -49,7 +61,7 @@ $(document).ready( function(){
         console.log(res)
         if( !res.error ){
           console.log( "usuario", res );
-
+          $("input[name='user_name']").val( res.name )
         }else{
           console.log("error",res.error_message);
         }
