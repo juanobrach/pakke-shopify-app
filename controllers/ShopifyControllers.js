@@ -57,7 +57,7 @@ module.exports = function(){
           accessToken: shopData.accessToken || '08dd51cda105586b623e2da563c99d2d'
         });
         shopify.carrierService.list().then( metafields =>{
-          resolve(metafields);
+          resolve(  metafields );
         }).catch( err =>{
           reject( err.response.body )
         })
@@ -107,20 +107,20 @@ module.exports = function(){
  /*
  *  Esta funcion es solo para desarrollo. El accessToken depende del usuario que se quiera probar.
  */
-  const list_wehbooks = function(shop_data){
+  const listWebhooks = function(shop_data){
     return new Promise( function(resolve, reject){
         var options = {
-          uri: 'https://'+shop_data+'.myshopify.com/admin/webhooks.json',
+          uri: 'https://'+shop_data.shopName+'.myshopify.com/admin/webhooks.json',
           simple: false,    //  <---  <---  <---  <---
           headers: {
-            'X-Shopify-Access-Token':shop_data.shopify_token,
-            'X-Shopify-Shop-Domain' : shop_data.shop_name + '.myshopify.com'
+            'X-Shopify-Access-Token':shop_data.accessToken,
+            'X-Shopify-Shop-Domain' : shop_data.shopName + '.myshopify.com'
           },
           resolveWithFullResponse: false
         };
 
         request(options).then( result => {
-            resolve( result )
+            resolve( JSON.stringify( result ) )
         }).catch( err => {
             reject(err)
         })
@@ -131,25 +131,38 @@ module.exports = function(){
     console.log("creando webhook controller")
     const shop_data = data;
     return new Promise( (resolve, reject)=>{
-      console.log("data wk", shop_data);
 
       const shopify = new Shopify({
         shopName: shop_data.shop_name,
         accessToken: shop_data.shopify_token
       });
 
+
        var data = {
            "topic": "orders/paid",
            "address": APP_URL +"/pakkeShopify/webhook/payment",
            "format": "json"
        }
+       console.log("data wk", data);
 
-       shopify.webhook.create( data ).then( result =>{
-         console.log( result )
-          resolve( result )
-       }).catch( err =>{
-         console.log( err )
-         reject( err )
+       /*
+       *  Valido que no exista un webhook
+       */
+       shopify.webhook.list().then( response  => {
+         console.log( "response" , response );
+          shopify.webhook.delete( response.webhooks[0].id ).then( response => {
+            shopify.webhook.create( data ).then( result =>{
+               resolve( result )
+            }).catch( err =>{
+              reject( err )
+            })
+          })
+       }).catch( r => {
+         shopify.webhook.create( data ).then( result =>{
+            resolve( result )
+         }).catch( err =>{
+           reject( err )
+         })
        })
     })
   }
@@ -164,7 +177,6 @@ module.exports = function(){
       });
 
       shopify.webhook.delete( webhook_id ).then( result =>{
-        console.log( result )
          resolve( result )
       }).catch( err =>{
         console.log( err )
@@ -338,7 +350,7 @@ module.exports = function(){
     listServices: listServices,
     deleteProvider: deleteProvider,
     validateIfShopExists:validateIfShopExists,
-    list_wehbooks:list_wehbooks,
+    listWebhooks:listWebhooks,
     getShopData:getShopData,
     getFulFillment: getFulFillment,
     listfulfillmentEvent:listfulfillmentEvent,

@@ -8,7 +8,14 @@ $(document).ready( function(){
   /*
   *  Formulario alta de tienda shopify / pakke  a la aplicacion
   *  se ejecuta esta funcion si se es validado el formulario
-  *  views/includes/adminDev.pug
+  *  views/includes/adminDev.pug  .form-group
+        h6 Nombre usuario
+        .input-group
+          input(type="text" name="user_name" )
+      .form-group
+        h6 Correo usuario
+        .input-group
+          input(type="mail" name="user_mail" )
   */
   $('.btn-setup-form-submit').click( function(e){
       e.preventDefault();
@@ -61,7 +68,14 @@ $(document).ready( function(){
         console.log(res)
         if( !res.error ){
           console.log( "usuario", res );
-          $("input[name='user_name']").val( res.name )
+          $("input[name='key_pake']").val( res.key_pake )
+          $("input[name='token_shopify']").val( res.token_shopify )
+
+          // TODO: agregar a la respuesta la informacion de los siguientes campos:
+          // $("input[name='shopify_webhook_paid_cb_url']").val( res.shopify_webhook_paid_cb_url )
+          // $("input[name='shopify_webhook_paid_cb_url']").val( res.shopify_webhook_paid_cb_url )
+
+
         }else{
           console.log("error",res.error_message);
         }

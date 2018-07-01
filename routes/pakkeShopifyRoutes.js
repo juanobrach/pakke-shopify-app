@@ -197,7 +197,13 @@ router.get('/install/authorize/:shop_name/:user_id', function(req, res) {
 */
 
 router.get('/install/getAccessTokenCallBack', function(req, res) {
-  console.log("preparando callback para obtener el token ")
+
+  var stepSetUpLog = {
+    'token': { 'status' : false, 'data'   : ''},
+    'service_rate_provider': { status: false, data: '' },
+    'shopify_webhook_paid': { status: false, data: '' },
+  };
+
   const { shop, hmac, code, state } = req.query;
   const stateCookie = cookie.parse(req.headers.cookie).state;
 
@@ -242,37 +248,34 @@ router.get('/install/getAccessTokenCallBack', function(req, res) {
 
    request.post( accessTokenRequestUrl, { json: accessTokenPayload })
    .then((accessTokenResponse) => {
+
      const accessToken = accessTokenResponse.access_token;
+
      console.log("Token recibido: " + accessToken );
      console.log("shop",shop);
-     const logtext= "TOKEN SHOPIFY: OK";
-     fs.appendFile('installations.log', logtext, (err) => {
-         if (err) throw err;
-     });
+
+     stepSetUpLog.token.status = true;
+     stepSetUpLog.token.data = accessToken;
+
      UserController.updateUserByShopName( shop.split('.')[0], accessToken  ).then( response => {
        /*
        *  Instalo el servicio que utilizara Shopify
        *  para calcular el costo de envio con los proveedores de Pakke.
        */
-       const logtext= "USUARIO ACTUALIZADO DATA TOKEN: OK";
-       fs.appendFile('installations.log', logtext, (err) => {
-           if (err) throw err;
-       });
 
        console.log('user updated', response);
-       const shipping_rate_provider = {
+
+       const service_rate_provider = {
          'name': 'Pakke',
          'callback_url': APP_URL + '/pakkeShopify/shipping_rates_providers_cb',
          'service_discovery': true
-       }
+       };
 
-       ShopifyController.createService( shipping_rate_provider, accessToken, shop )
+       ShopifyController.createService( service_rate_provider, accessToken, shop )
        .then( response => {
 
-         const logtext= "CREACION DE SERVICIO PARA RATES: OK \n";
-         fs.appendFile('installations.log', logtext, (err) => {
-             if (err) throw err;
-         });
+         stepSetUpLog.service_rate_provider.status = true;
+         stepSetUpLog.service_rate_provider.data = service_rate_provider;
 
          /* Creando webhook para escuchar cuando se paga una orden
          *  Este webhook sera responsable de crear ordenes en pakke
@@ -283,11 +286,11 @@ router.get('/install/getAccessTokenCallBack', function(req, res) {
          }
 
          ShopifyController.createWebhook(data).then( result => {
-           const logtext= "CREACION DE WEBHOOK PARA ORDEN: OK";
-           fs.appendFile('installations.log', logtext, (err) => {
-               if (err) throw err;
-           });
-           res.render('welcome')
+           stepSetUpLog.shopify_webhook_paid.status = true;
+           stepSetUpLog.shopify_webhook_paid.data = result;
+
+           console.log( stepSetUpLog );
+          res.render('welcome')
          }).catch( err => {
           const logtext= "CREACION DE WEBHOOK PARA ORDEN: NO";
            fs.appendFile('installations.log', logtext, (err) => {
@@ -328,37 +331,13 @@ router.get('/install/getAccessTokenCallBack', function(req, res) {
    res.status(400).send('Required parameters missing');
  }
 
+ })
+
  router.get('/admin', function(req, res){
    console.log("App Admin")
    // TODO: traer informacion del usuario que esta logeado en la tienda. Posible uso del SDK
    res.status(200).render('admin');
  })
-
- /**
- * TODO:
- *  Instalar servicios de pakke en shopify
- *  Esta funcion la deberia ejecutar el cliente desde el dashboard de Shopify
- *  o se ejecutara al mismo tiempo de la instalacion
- */
- router.post('/admin/install_services', function(req, res){
-   const services = [];
-
-   // Obtengo los servicios de Pakke
-   request({
-     method:'get',
-     uri: '/pakke/get_services',
-     json: true }).then( (services )=>{
-      if ( services.length > 0 ) {
-        // Instalo los servicios en shopify
-        services.push(services);
-      }else{
-        res.send(JSON.stringify({'error':true, 'error_message': error }));
-      }
-   }).catch( (error)=>{
-      res.send(JSON.stringify({'error':true, 'error_message': error }));
-   })
-  })
-})
 
 /*
 *   Metodo para actualizar el tracking order
@@ -385,7 +364,7 @@ router.post('/pakke_webhook', function(req,res){
 
 router.post('/webhook/payment', function(req, res){
   console.log('order payment webhook', req.body)
-
+  console.log('order payment webhook', req.header);
   // se debera crear el parcel ( peso del envio ) a partir de los items de la orden
   var grams = 0;
   // console.log( req.body.line_items );
@@ -428,7 +407,7 @@ router.post('/webhook/payment', function(req, res){
       var shipping_provider  =  {
             "CourierCode": service_data[0].CourierCode,
             "CourierServiceId": service_data[0].CourierServiceId,
-            "ResellerReference": "REF-V6BN9R1HB2OZQ",
+            "ResellerReference": order_id,
       }
       // console.log("shipping provider", shipping_provider)
       ShopifyController.getShopData(user)
@@ -479,20 +458,18 @@ router.post('/webhook/payment', function(req, res){
           pakke_api_key: api_key_pakke,
           shopify_order_id:order_id
         }
+
         PakkeController.createOrder( order_data ).then( result => {
           console.log("create order pakke result ", result );
-          const tacking_number = result.TrackingNumber;
+          const tacking_number   = result.TrackingNumber;
           const shopify_order_id = result.ResellerReference;
-          const parcel     = result.Parcel;
+          const parcel           = result.Parcel;
 
           // Crear fullfilment en Shopify con tracking de la orden
-
-          const shop_data = {
+          ShopifyController.getLocations({
             shopify_token : token_shopify,
             shop_name     : shop_name
-          };
-          ShopifyController.getLocations(shop_data).then( location => {
-            console.log("location",location);
+          }).then( location => {
 
             const fullFilmentOptions = {
              "location_id": location[0].id,
@@ -501,10 +478,13 @@ router.post('/webhook/payment', function(req, res){
             };
 
             console.log("fullFilmentOptions", fullFilmentOptions );
-            ShopifyController.createFulFillment(shop_data, shopify_order_id, fullFilmentOptions ).then( resolve=>{
+            ShopifyController.createFulFillment({
+              shopify_token : token_shopify,
+              shop_name     : shop_name
+            }, shopify_order_id, fullFilmentOptions ).then( resolve=>{
               res.status("200").send(resolve);
             }).catch( err => {
-              res.status("200").send( JSON.stringify( err ) )
+              res.status("200").send(err)
             })
           })
         }).catch( err => {
@@ -515,6 +495,7 @@ router.post('/webhook/payment', function(req, res){
       })
       .catch( err => {
         console.log("err shop_data ")
+        res.status("200").send("ok");
       })
     })
     .catch( err => {
@@ -526,6 +507,7 @@ router.post('/webhook/payment', function(req, res){
   .catch( err => {
     console.log("err")
   })
+  res.status("200").send();
 })
 
 module.exports = router

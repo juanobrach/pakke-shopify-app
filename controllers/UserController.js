@@ -1,5 +1,6 @@
 var assert = require('assert');
 var User = require('../models/user.js')
+var ShopifyController = require('./ShopifyControllers.js')();
 
 module.exports = function(){
 
@@ -50,16 +51,39 @@ module.exports = function(){
   const getUserByShopName = function( shopName ){
     return new Promise( (resolve, reject)=>{
       console.log("shopName", shopName );
-       User.findOne({"shop":shopName}).then( result => {
-         console.log("result getUserByShop",result)
-         if( result == null ){
+      /*
+      *  La funcion LEAN() permite que mongoose nos devuelva un objeto plano
+      *  y asi sea posible editarlo.
+      * http://mongoosejs.com/docs/api.html#query_Query-lean
+      * mongoose will return the document as a plain JavaScript object rather than a mongoose document
+      */
+       User.findOne({"shop":shopName}).lean().then( user => {
+         console.log("user getUserByShop",user)
+         var user = user;
+         if( user == null ){
            reject({
              error:true,
              error_message:"No existe el usuario",
            })
          }else{
-           if ( result.token_shopify.length > 0 ){
-             resolve(result);
+           if ( user.token_shopify.length > 0 ){
+
+             // Obtengo servicios obtenidos
+             ShopifyController.listServices({
+               shopName: shopName,
+               accessToken: user.token_shopify
+             }).then( services =>{
+               user.service = services[0];
+               console.log("services", user);
+               ShopifyController.listWebhooks({
+                 shopName: shopName,
+                 accessToken: user.token_shopify
+               }).then( wb => {
+                 console.log("wb", wb);
+                 user.webhooks = { "payments" : wb };
+                 resolve( user );
+               })
+             })
            }else{
              // Puede que no tenga el access token, permitir continuar con la instalacion
              // sera necesario leer el tipo de error para determinar si se continua la fn de instalacion
