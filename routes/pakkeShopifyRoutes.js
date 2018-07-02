@@ -340,14 +340,15 @@ router.get('/install/getAccessTokenCallBack', function(req, res) {
  })
 
 /*
+*   TODO:
 *   Metodo para actualizar el tracking order
 *   @params( refid:1231 )
 *   @params([ 1, 2, ...])
 *
 */
-router.post('/pakke_webhook', function(req,res){
+router.post('/webhook/pakke/updateTracking', function(req,res){
   pakke = {
-    takcl:status,
+    takcl:'status',
     refId: 123123.
   }
   ShopifyController.updateTracking(pake);
@@ -363,151 +364,137 @@ router.post('/pakke_webhook', function(req,res){
 */
 
 router.post('/webhook/payment', function(req, res){
-  console.log('order payment webhook', req.body)
-  console.log('order payment webhook', req.header);
-  // se debera crear el parcel ( peso del envio ) a partir de los items de la orden
-  var grams = 0;
-  // console.log( req.body.line_items );
-  req.body.line_items.forEach( ( el) =>{
-    grams += el.grams
-  })
+    console.log('order payment webhook', req.body)
+    console.log('order payment headers', req.headers)
+    // se debera crear el parcel ( peso del envio ) a partir de los items de la orden
+    var grams = 0;
+    // console.log( req.body.line_items );
+    req.body.line_items.forEach( ( el) =>{
+      grams += el.grams
+    })
 
-  const parcel = {
-    "Length": 1,
-    "Width": 1,
-    "Height": 1,
-    "Weight": grams / 1000, // convierto a kg
-    // "Weight": 10, // convierto a kg
+    const parcel = {
+      "Length": 1,
+      "Width": 1,
+      "Height": 1,
+      "Weight": grams / 1000, // convierto a kg
+      // "Weight": 10, // convierto a kg
 
-  }
+    }
 
-  const shipping_lines = req.body.shipping_lines;
-  const customer_shipping_address = req.body.shipping_address;
-  const customer_data = req.body.customer;
-  const shop_url = req.rawHeaders[5];
-  const shop_name = shop_url.split('.')[0];
-  const order_id   = req.body.id;
+    const shipping_lines = req.body.shipping_lines;
+    const customer_shipping_address = req.body.shipping_address;
+    const customer_data = req.body.customer;
+    const shop_url = req.rawHeaders[5];
+    const shop_name = shop_url.split('.')[0];
+    const order_id   = req.body.id;
 
-  // console.log('parcel', parcel);
-  // console.log("customer_shipping_address", customer_shipping_address);
-  // console.log("customer_data", customer_data);
-  // console.log("shop_url", shop_url);
-  // console.log("shop_name", shop_name);
 
-  // Obtengo informacion del usuario que pertenece esta orden
-  UserController.getUserByShopName( shop_name )
-  .then( user => {
-    // console.log("user", user );
-    const api_key_pakke = user.key_pake;
-    const token_shopify = user.token_shopify
-    // Obtengo informacion del servicio que utiliza la orden
-    PakkeController.getServiceById( api_key_pakke, shipping_lines[0].code)
-    .then( service_data  => {
-      // console.log("service data", service_data[0])
-      var shipping_provider  =  {
+
+
+    // console.log('parcel', parcel);
+    // console.log("customer_shipping_address", customer_shipping_address);
+    // console.log("customer_data", customer_data);
+    // console.log("shop_url", shop_url);
+    // console.log("shop_name", shop_name);
+
+    // Obtengo informacion del usuario que pertenece esta orden
+    UserController.getUserByShopName( shop_name )
+    .then( user => {
+      // console.log("user", user );
+      const api_key_pakke = user.key_pake;
+      const token_shopify = user.token_shopify;
+      ShopifyController.getFulFillment({
+        shopName:shop_name,
+        accessToken: token_shopify
+      }, order_id ).then( res => {
+        res.status(200).send('OK');
+      }).catch( err => {
+        // Obtengo informacion del servicio que utiliza la orden
+        PakkeController.getServiceById( api_key_pakke, shipping_lines[0].code)
+        .then( service_data  => {
+          // console.log("service data", service_data[0])
+          var shipping_provider  =  {
             "CourierCode": service_data[0].CourierCode,
             "CourierServiceId": service_data[0].CourierServiceId,
             "ResellerReference": order_id,
-      }
-      // console.log("shipping provider", shipping_provider)
-      ShopifyController.getShopData(user)
-      .then( shop_data_result  => {
+          }
+          // console.log("shipping provider", shipping_provider)
+          ShopifyController.getShopData(user)
+          .then( shop_data_result  => {
+              const sender = {
+                "Name": shop_data_result.shop_owner || "no name",
+                "CompanyName": shop_data_result.name || "no company name",
+                "Phone1": shop_data_result.phone || '5545789636',
+                "Phone2": "",
+                "Email": shop_data_result.email
+              };
+              const recipient = {
+                "Name": customer_shipping_address.first_name,
+                "CompanyName": customer_shipping_address.first_name,
+                "Phone1": "5555555555",
+                "Email": customer_data.email
+              };
+              const address_from = {
+                "ZipCode": shop_data_result.zip,
+                "State": "MX-MEX",
+                "City": shop_data_result.city,
+                "Neighborhood": shop_data_result.province,
+                "Address1": shop_data_result.address1,
+                "Address2":  shop_data_result.address2,
+                "Residential": true
+              }
+              const address_to = {
+                "ZipCode": "06140" || customer_shipping_address.zip,
+                "State": "MX-MEX",
+                "City": customer_shipping_address.city,
+                "Neighborhood": customer_shipping_address.province,
+                "Address1": customer_shipping_address.address1,
+                "Address2":  customer_shipping_address.address2,
+                "Residential": false
+              }
+              const order_data =  {
+                shipping_provider: shipping_provider,
+                parcel: parcel,
+                sender:sender,
+                recipient:recipient,
+                address_from:address_from,
+                address_to:address_to,
+                pakke_api_key: api_key_pakke,
+                shopify_order_id:order_id
+              }
+              PakkeController.createOrder( order_data )
+                .then( result => {
+                  console.log("create order pakke result ", result );
+                  const tacking_number   = result.TrackingNumber;
+                  const shopify_order_id = result.ResellerReference;
+                  const parcel           = result.Parcel;
 
-        const sender = {
-          "Name": shop_data_result.shop_owner || "no name",
-          "CompanyName": shop_data_result.name || "no company name",
-          "Phone1": shop_data_result.phone || '5545789636',
-          "Phone2": "",
-          "Email": shop_data_result.email
-        };
-
-        const recipient = {
-          "Name": customer_shipping_address.first_name,
-          "CompanyName": customer_shipping_address.first_name,
-          "Phone1": "5555555555",
-          "Email": customer_data.email
-        };
-
-        const address_from = {
-          "ZipCode": shop_data_result.zip,
-          "State": "MX-MEX",
-          "City": shop_data_result.city,
-          "Neighborhood": shop_data_result.province,
-          "Address1": shop_data_result.address1,
-          "Address2":  shop_data_result.address2,
-          "Residential": true
-        }
-
-        const address_to = {
-          "ZipCode": "06140" || customer_shipping_address.zip,
-          "State": "MX-MEX",
-          "City": customer_shipping_address.city,
-          "Neighborhood": customer_shipping_address.province,
-          "Address1": customer_shipping_address.address1,
-          "Address2":  customer_shipping_address.address2,
-          "Residential": false
-        }
-
-        const order_data =  {
-          shipping_provider: shipping_provider,
-          parcel: parcel,
-          sender:sender,
-          recipient:recipient,
-          address_from:address_from,
-          address_to:address_to,
-          pakke_api_key: api_key_pakke,
-          shopify_order_id:order_id
-        }
-
-        PakkeController.createOrder( order_data ).then( result => {
-          console.log("create order pakke result ", result );
-          const tacking_number   = result.TrackingNumber;
-          const shopify_order_id = result.ResellerReference;
-          const parcel           = result.Parcel;
-
-          // Crear fullfilment en Shopify con tracking de la orden
-          ShopifyController.getLocations({
-            shopify_token : token_shopify,
-            shop_name     : shop_name
-          }).then( location => {
-
-            const fullFilmentOptions = {
-             "location_id": location[0].id,
-             "tracking_number": tacking_number,
-             "notify_customer": true
-            };
-
-            console.log("fullFilmentOptions", fullFilmentOptions );
-            ShopifyController.createFulFillment({
-              shopify_token : token_shopify,
-              shop_name     : shop_name
-            }, shopify_order_id, fullFilmentOptions ).then( resolve=>{
-              res.status("200").send(resolve);
-            }).catch( err => {
-              res.status("200").send(err)
-            })
-          })
-        }).catch( err => {
-          console.log("create order pakke error" ,err);
-          res.status("200").send("ok");
-
-        })
+                  // Crear fullfilment en Shopify con tracking de la orden
+                  ShopifyController.getLocations({
+                    shopify_token : token_shopify,
+                    shop_name     : shop_name
+                  })
+                  .then( location => {
+                    ShopifyController.createFulFillment({
+                      shopify_token : token_shopify,
+                      shop_name     : shop_name
+                    }, shopify_order_id, {
+                     "location_id": location[0].id,
+                     "tracking_number": tacking_number,
+                     "notify_customer": true
+                    }).then( resolve=>{
+                      res.status(200).send('OK');
+                    }).catch( err => {})
+                  }).catch( (err ) =>{} ) // end Get locations
+                }).catch( err => {
+                  res.status(200).send('OK');
+              }) // end create order
+            }) // End getShopData
+          }) // end getServiceById
+        }) // END getUserByShopName
       })
-      .catch( err => {
-        console.log("err shop_data ")
-        res.status("200").send("ok");
-      })
+      res.status(200).send('OK')
     })
-    .catch( err => {
-      console.log("err", err)
-        // TODO: Manejo de error
-    })
-    // res.send( JSON.stringify( user ))
-  })
-  .catch( err => {
-    console.log("err")
-  })
-  res.status("200").send();
-})
 
 module.exports = router

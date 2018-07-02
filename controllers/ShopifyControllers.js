@@ -259,7 +259,7 @@ module.exports = function(){
          console.log("respuesta", result );
           resolve( result )
        }).catch( err =>{
-         console.log( err )
+         console.log("err fulfillment", err )
          reject( err )
        })
     })
