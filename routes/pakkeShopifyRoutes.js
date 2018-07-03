@@ -445,7 +445,7 @@ router.post('/webhook/payment', function(req, res){
                 "Residential": true
               }
               const address_to = {
-                "ZipCode": "06140" || customer_shipping_address.zip,
+                "ZipCode": customer_shipping_address.zip || "06140",
                 "State": "MX-MEX",
                 "City": customer_shipping_address.city,
                 "Neighborhood": customer_shipping_address.province,
