@@ -20,6 +20,10 @@ const APP_URL           = process.env.APP_URL;
 const SHOP_TOKEN        = process.env.SHOP_TOKEN;
 const PAKKE_API_KEY     = process.env.PAKKE_API_KEY;
 
+/*
+*   linea de codigo [  ] Instalacion usuario
+*
+*/
 
 /*
 *   Al instalar un shipping rate provider se le asigna un callback_url.
@@ -76,6 +80,7 @@ router.post('/validate_shop_url', function(req, res) {
         console.log("la tienda existe" ,shop)
         // Valido que no exista ya un usuario con esta tienda
         UserController.getUserByShopName(shop).then( exist => {
+          console.log("Existe un usuario para esta la tienda ")
           res.send(JSON.stringify({
             "valid": false,
             "message": "Ya existe un usuario con esta tienda"
@@ -305,6 +310,11 @@ router.get('/install/getAccessTokenCallBack', function(req, res) {
 
          console.log("service not installed")
          console.log(err);
+         const data = {
+           shop_name: shop,
+           shopify_token : accessToken
+         }
+
          ShopifyController.createWebhook(data).then( result => {
            const logtext= "CREACION DE WEBHOOK PARA ORDEN: OK \n --- FIN NUEVA INSTALACION ---";
            fs.appendFile('installations.log', logtext, (err) => { if (err){throw err;}});
@@ -324,7 +334,7 @@ router.get('/install/getAccessTokenCallBack', function(req, res) {
        fs.appendFile('installations.log', logtext, (err) => { if(err){throw err;}});
    }).catch((error) => {
      console.log(error)
-     res.status(error.statusCode).send(error.error_description);
+    // res.status(error.statusCode).send(error.error_description);
    });
 
  } else {
@@ -355,6 +365,64 @@ router.post('/webhook/pakke/updateTracking', function(req,res){
   res.send(JSON.stringify({error:false, message:'pakke webhook send'}))
 })
 
+
+/*
+*  Esta ruta devuelve informacion del tracking al customer.
+*  TODO:
+*  esta vista deberia mostrar lo siguiente:
+*
+  {
+    // Primera fila del layout de pakke ( guia )
+    CourierName : 'estafeta',
+    CourierService : 'Terrestre consumo',
+    TrackingNumber: 213123,
+    TrackingStatus: 'delivered',
+    // Segunda fila del layout de pakke ( guia )
+    ResellerReference: shopify_order_id,
+    CoveredAmount<precioBase> : 95,
+    ExtrasAmount : 0,
+    InsuranceAmount<seguroPrecio>: 0,
+    TotalAmount: 95,
+    // Tercer fila del layout de pakke, columa 1 / 2 ( guia )
+    destination:{
+          ReceivedAt
+          ReceivedBy: '',
+          :
+    },
+  }
+*/
+router.get('/track/:order_id/:pakke_api_key', function(req,res){
+    var log = {
+      result: false,
+      error: false,
+    }
+
+    const order_id = req.params.order_id;
+    const pakke_api_key =  req.params.pakke_api_key;
+    if( order_id == '' ){
+      log.error = true;
+      log.error.message = "No se obtuvo el ID del envio."
+      // TODO: manejar error
+    }else{
+
+      /*
+      * Devolvera a la vista el objeto de respuesta para el metodo /Shipments de Pakke.
+      * Este las propiedades de este objeto se utilizaran para cargar la informacion a la vista.
+      * TODO: se podra tambien consutlar el metodo /history para obtener la informacion historica
+      * de lo sucedido con el envio
+      * http://docs.pakke.mx/#courierservice
+      */
+      PakkeController.getShipmentById( pakke_api_key, order_id).then( tracking_info => {
+        console.log( "tracking info", tracking_info );
+        res.render("orderTracking", tracking_info );
+      }).catch( err => {
+        // TODO: manejar error
+        console.log("error: mostrar tracking ", err )
+      })
+    }
+})
+
+
 /*
 *   WEBHOOK orden pagada
 *   Creacion orden en Pakke
@@ -366,6 +434,7 @@ router.post('/webhook/pakke/updateTracking', function(req,res){
 router.post('/webhook/payment', function(req, res){
     console.log('order payment webhook', req.body)
     console.log('order payment headers', req.headers)
+    const APP_URL = process.env.APP_URL;
     // se debera crear el parcel ( peso del envio ) a partir de los items de la orden
     var grams = 0;
     // console.log( req.body.line_items );
@@ -467,6 +536,7 @@ router.post('/webhook/payment', function(req, res){
                 .then( result => {
                   console.log("create order pakke result ", result );
                   const tacking_number   = result.TrackingNumber;
+                  const tracking_id      = result.ShipmentId;
                   const shopify_order_id = result.ResellerReference;
                   const parcel           = result.Parcel;
 
@@ -482,7 +552,10 @@ router.post('/webhook/payment', function(req, res){
                     }, shopify_order_id, {
                      "location_id": location[0].id,
                      "tracking_number": tacking_number,
-                     "notify_customer": true
+                     "notify_customer": true,
+                     "tracking_urls": [
+                        APP_URL+"/pakkeShopify/track/" + tracking_id + "/" + api_key_pakke,
+                      ],
                     }).then( resolve=>{
                       res.status(200).send('OK');
                     }).catch( err => {})

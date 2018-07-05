@@ -70,12 +70,9 @@ $(document).ready( function(){
           console.log( "usuario", res );
           $("input[name='key_pake']").val( res.key_pake )
           $("input[name='token_shopify']").val( res.token_shopify )
-
           // TODO: agregar a la respuesta la informacion de los siguientes campos:
+          // $("input[name='shopify_webhook_paid_cb_url']").val( res.webhooks.hopify_webhook_paid_cb_url )
           // $("input[name='shopify_webhook_paid_cb_url']").val( res.shopify_webhook_paid_cb_url )
-          // $("input[name='shopify_webhook_paid_cb_url']").val( res.shopify_webhook_paid_cb_url )
-
-
         }else{
           console.log("error",res.error_message);
         }
@@ -86,5 +83,23 @@ $(document).ready( function(){
         // TODO: manejar errores
       }
     })
+  })
+
+  /*
+  * Cada input puede o no tener un boton de instalar. Dependiente si se obtuvo o no
+  * informacion
+  */
+  $("button.install").click( function(e){
+    var $refEl = $(this).closest('input');
+    if ($($refEl).val() <= 0 ){
+
+        const install_element = $($refEl).attr('data-service');
+        const url = "";
+
+
+        $.ajax({
+
+        })
+    }
   })
 })

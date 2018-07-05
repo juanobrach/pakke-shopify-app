@@ -152,10 +152,29 @@ module.exports = function(){
     })
   }
 
+  const getShipmentById = ( user_api_key , tracking_id ) => {
+    return new Promise( ( resolve, reject )=>{
+      request({
+        method:'get',
+        uri: PAKKE_API_URL + '/Shipments/' + tracking_id,
+        headers: {
+          'content-type':'application/json',
+          'Authorization': user_api_key
+        },
+        json: true // Automatically parses the JSON string in the response
+      }).then( (result) =>{
+          resolve(  result  );
+      }).catch((error) => {
+          reject(JSON.stringify(error));
+      })
+    })
+  }
+
   return {
     validateApiKey: validateApiKey,
     getProvidersShippingPrices : getProvidersShippingPrices,
-    getServiceById: getServiceById,
     createOrder : createOrder,
+    getServiceById:getServiceById,
+    getShipmentById: getShipmentById,
   }
 }

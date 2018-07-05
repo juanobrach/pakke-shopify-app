@@ -25,22 +25,27 @@ module.exports = function(){
           console.log("services found", services )
           if( services.length > 0 ){
             shopify.carrierService.delete( services[0].id ).then( _s =>{
+              console.log("Creando servicio", service )
               shopify.carrierService.create(service).then( metafields =>{
-                  resolve();
+                  console.log("Servicio creado", metafields )
+                  resolve( metafields );
                 }).catch( err =>{
                   reject( err )
                 })
             });
           }else{
+            console.log("Creando servicio", service )
             shopify.carrierService.create(service).then( metafields =>{
-              resolve();
+              resolve( metafields );
             }).catch( err =>{
+              console.log("Fallo creacion servicio", service )
               reject( err )
             })
           }
         }).catch( err => {
+          console.log("Creando servicio" , service );
           shopify.carrierService.create(service).then( metafields =>{
-              resolve();
+              resolve( metafields );
             }).catch( err =>{
               reject( err )
             })
@@ -120,7 +125,10 @@ module.exports = function(){
         };
 
         request(options).then( result => {
-            resolve( JSON.stringify( result ) )
+          const result_obj = JSON.parse(result);
+          console.log("listWebhooks", result_obj.webhooks );
+
+            resolve( result_obj.webhooks )
         }).catch( err => {
             reject(err)
         })

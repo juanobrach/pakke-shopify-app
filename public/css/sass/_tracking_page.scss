@@ -1,0 +1,23 @@
+div#order-tracking-page-container{
+  background-color:white;
+  color:black;
+  padding:2%;
+  // Reset
+  div.row{
+    margin-bottom:1.5em;
+    border: 1px solid #a79e9e4d;
+    border-radius: 5px;
+  }
+
+  p {
+    margin:0;
+  }
+
+  div.label p {
+    font-size: .8em;
+    color: rgba(0,0,0,.8)
+  }
+
+  // Primera fila del layout
+
+}

@@ -1,0 +1,52 @@
+include includes/head.pug
+div.container-fluid( id="order-tracking-page-container")
+  div.row(style="min-height:36px")
+    div.col-sm
+      div.label
+        p Empresa
+      div
+        p #{CourierName}
+    div.col-sm
+      div.label
+        p Servicio
+      div
+        p #{CourierService}
+    div.col-sm
+      div.label
+        p  Número de guía
+      div
+        p #{TrackingNumber}
+    div.col-sm
+      div.label
+        p Estado de rastreo
+      div
+        p #{TrackingStatus}
+  div.row
+    div.col-sm
+      div.label
+        p Referencia
+      div
+        p #{ResellerReference}
+    div.col-sm
+      div.label
+        p Precio base (MXN)
+      div
+        p $#{CoveredAmount}
+    div.col-sm
+      div.label
+        p Cargo extra (MXN)
+      div
+        p $#{ExtrasAmount}
+    div.col-sm
+      div.label
+        p Seguro (MXN)
+      div
+        p $#{InsuranceAmount}
+    div.col-sm
+      div.label
+        p Precio final (MXN)
+      div
+        p $#{TotalAmount}
+
+style.
+ # Public/css/sass/tracking_page.scss

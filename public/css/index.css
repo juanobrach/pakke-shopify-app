@@ -12,7 +12,8 @@ html, body {
   display: flex;
   flex-flow: row wrap;
   justify-content: center;
-  align-items: center; }
+  align-items: center;
+  margin-top: 1em; }
   .logo-container > span {
     padding: 0 1em;
     font-size: 2em; }
@@ -84,3 +85,17 @@ form {
 
 .form-error-container {
   display: none; }
+
+div#order-tracking-page-container {
+  background-color: white;
+  color: black;
+  padding: 2%; }
+  div#order-tracking-page-container div.row {
+    margin-bottom: 1.5em;
+    border: 1px solid #a79e9e4d;
+    border-radius: 5px; }
+  div#order-tracking-page-container p {
+    margin: 0; }
+  div#order-tracking-page-container div.label p {
+    font-size: .8em;
+    color: rgba(0, 0, 0, 0.8); }

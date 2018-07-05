@@ -50,7 +50,6 @@ module.exports = function(){
   */
   const getUserByShopName = function( shopName ){
     return new Promise( (resolve, reject)=>{
-      console.log("shopName", shopName );
       /*
       *  La funcion LEAN() permite que mongoose nos devuelva un objeto plano
       *  y asi sea posible editarlo.
@@ -58,7 +57,6 @@ module.exports = function(){
       * mongoose will return the document as a plain JavaScript object rather than a mongoose document
       */
        User.findOne({"shop":shopName}).lean().then( user => {
-         console.log("user getUserByShop",user)
          var user = user;
          if( user == null ){
            reject({
@@ -66,6 +64,7 @@ module.exports = function(){
              error_message:"No existe el usuario",
            })
          }else{
+           console.log("User: ",user)
            if ( user.token_shopify.length > 0 ){
 
              // Obtengo servicios obtenidos
@@ -73,14 +72,15 @@ module.exports = function(){
                shopName: shopName,
                accessToken: user.token_shopify
              }).then( services =>{
-               user.service = services[0];
-               console.log("services", user);
+               console.log("services", services );
+               user.services = services[0] || {};
+               console.log("services", services);
                ShopifyController.listWebhooks({
                  shopName: shopName,
                  accessToken: user.token_shopify
-               }).then( wb => {
-                 console.log("wb", wb);
-                 user.webhooks = { "payments" : wb };
+               }).then( webhooks => {
+                 console.log("webhooks", webhooks);
+                 user.webhooks ={ payment:  webhooks[0] };
                  resolve( user );
                })
              })
@@ -91,7 +91,7 @@ module.exports = function(){
                error:true,
                error_number:1,
                error_message:"Falta el access token, seguir con la instalacion",
-               data: result
+               data: user
              })
            }
          }
