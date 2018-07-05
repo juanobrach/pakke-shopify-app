@@ -79,18 +79,10 @@ router.post('/validate_shop_url', function(req, res) {
       ShopifyController.validateIfShopExists(shop).then( result => {
         console.log("la tienda existe" ,shop)
         // Valido que no exista ya un usuario con esta tienda
-        UserController.getUserByShopName(shop).then( exist => {
-          console.log("Existe un usuario para esta la tienda ")
-          res.send(JSON.stringify({
-            "valid": false,
-            "message": "Ya existe un usuario con esta tienda"
-          }))
-        }).catch( notExist => {
-          res.send(JSON.stringify({
-            "valid" : true,
-            "message" : ""
-          }));
-        })
+        res.send(JSON.stringify({
+          "valid" : true,
+          "message" : ""
+        }));
       }).catch( error=> {
         res.send(JSON.stringify({
           "valid" : false,

@@ -6,7 +6,8 @@ html, body {
   color: white; }
 
 .app-container {
-  height: 100%; }
+  height: 100%;
+  padding: 2em; }
 
 .logo-container {
   display: flex;

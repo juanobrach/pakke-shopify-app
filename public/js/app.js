@@ -1,8 +1,9 @@
 $(document).ready( function(){
   // Inicio validacion
   $.validate({
-    modules : 'date, security',
-    validateOnBlur : true
+    modules : 'date, security, toggleDisabled',
+    validateOnBlur : true,
+    disabledFormFilter : 'form#setup_form'
   });
 
   /*
@@ -19,32 +20,49 @@ $(document).ready( function(){
   */
   $('.btn-setup-form-submit').click( function(e){
       e.preventDefault();
+      console.log("submit signup")
       var data = {
         shop: $("input[name='shopify_shop_name']").val().toLowerCase(),
         key_pake: $("input[name='pakke_api_key']").val(),
         token_shopify: ''
       }
 
-      $.ajax({
-        url:'/pakkeShopify/signup',
-        data: data,
-        dataType: 'json',
-        type:'post',
-        success: function(res){
-          console.log(res)
-          if( !res.error ){
-            window.location.replace( res.installUrl )
-          }else{
-            console.log(res.error_message);
-
+      var form_valid = false;
+      $('#shopify_shop_name').validate( function(valid ){
+          if( valid ){
+             $('#pakke_api_key').validate( function( _valid ){
+               form_valid = true;
+             })
           }
-          // TODO: manejar respuesta
-        },
-        error: function(err){
-          console.log(err)
-          // TODO: manejar errores
-        }
       })
+
+      console.log(form_valid);
+      if( form_valid ){
+        console.log("enviando signup")
+        $.ajax({
+          url:'/pakkeShopify/signup',
+          data: data,
+          dataType: 'json',
+          type:'post',
+          success: function(res){
+            console.log(res)
+            if( !res.error ){
+              window.location.replace( res.installUrl )
+            }else{
+              console.log(res.error_message);
+            }
+            // TODO: manejar respuesta
+          },
+          error: function(err){
+            console.log(err)
+            // TODO: manejar errores
+          }
+        })
+      }else{
+        console.log("no valido")
+      }
+
+
   })
 
   /*
