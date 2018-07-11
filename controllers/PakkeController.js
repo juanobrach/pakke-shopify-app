@@ -13,7 +13,7 @@ const PAKKE_API_URL = process.env.PAKKE_API_URL;
 
 module.exports = function(){
 
-  const validateApiKey = function validateApiKey(){
+  const validateApiKey = function( user_api_key ){
     return new Promise( ( resolve, reject )=>{
       request({
         method:'get',
@@ -24,12 +24,13 @@ module.exports = function(){
         },
         json: true // Automatically parses the JSON string in the response
       }).then( (result) =>{
+        console.log("validate pakke", result )
         if( result ){
-            resolve(JSON.stringify({ error: false}) );
+            resolve(JSON.stringify({ valid: true}) );
         }
       }).catch((error) => {
           reject(JSON.stringify({
-            "valid" : true,
+            "valid" : false,
             "message" : "La api es incorrecta, intente mas tarde o ingrese una nueva."
           }));
        })
@@ -50,7 +51,8 @@ module.exports = function(){
               "Height": 1,
               "Weight": data.shipping_total_weight,
               "VolumetricWeight": data.shipping_total_weight
-            }
+            },
+            "InsuredAmount":""
           },
          'headers': {
            'content-type':'application/json',
