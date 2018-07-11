@@ -60,6 +60,7 @@ $(document).ready( function(){
         })
       }else{
         console.log("no valido")
+        $("form").validate();
       }
 
 

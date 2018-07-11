@@ -1,11 +1,11 @@
 div.container
-  form( action="#" name="setup_form" id="setup_form")
+  form( action="#" name="setup_form" id="setup_form" class="toggle-disabled")
     .form-group
       h6 Paso 1  - Configurar Shopify
       .input-group
         .input-group-prepend
           .input-group-text https://
-        input#shopify_shop_name.form-control( required type='text' data-validation-url="/pakkeShopify/validate_shop_url" data-validation="server" aria-describedby='emailHelp' placeholder='tutienda' name="shopify_shop_name")
+        input#shopify_shop_name.form-control( required="required"  type='text' data-validation-url="/pakkeShopify/validate_shop_url" data-validation="server" aria-describedby='emailHelp' placeholder='tutienda' name="shopify_shop_name")
         .input-group-append
           .input-group-text .myshopify.com
       small#emailHelp.form-text.text-muted Si aun no tienes tu tienda shopify puedes crear una gratis desde 
@@ -15,7 +15,7 @@ div.container
       .input-group
         .input-group-prepend
           .input-group-text API key
-        input#pakke_api_key.form-control(required name="pakke_api_key" type='text' data-validation-url="/pakkeShopify/validateApiKeyPakke" data-validation="server"  aria-describedby='emailHelp' placeholder='******0rOyb47AVcI4kFXEVE2sVSAY*********************************')
+        input#pakke_api_key.form-control(required="required"  name="pakke_api_key" type='text' data-validation-url="/pakkeShopify/validateApiKeyPakke" data-validation="server"  aria-describedby='emailHelp' placeholder='******0rOyb47AVcI4kFXEVE2sVSAY*********************************')
       small#emailHelp.form-text.text-muted Si aun no te has registrado en Pakke puedes hacerlo desde 
         a(href="https://www.shopify.com/signup" target="__blank")
           | aqui.
@@ -36,8 +36,7 @@ div.container
                     img(src="assets/img/pakke-key-circle.png")
                   .modal-footer
                     button.btn.btn-secondary(type="button" data-dismiss="modal") Entendido
-</button>
     .form-group
       div.form-row
         div.col.align-self-end
-        button(type="button" class="btn btn-primary btn-setup-form-submit" ) Instalar App
+        button(type="submit" class="btn btn-primary btn-setup-form-submit" ) Instalar App

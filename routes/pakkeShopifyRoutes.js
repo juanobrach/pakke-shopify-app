@@ -98,19 +98,20 @@ router.post('/validate_shop_url', function(req, res) {
 
 
 router.post( '/validateApiKeyPakke', function( req, res){
-    const apiKey = req.body.pakke_public_key;
+    const apiKey = req.body.pakke_api_key;
 
     if( apiKey ){
-      PakkeControler.validateApiKey( apiKey ).then( function(result){
-        res.send(JSON.stringify({'error': false }))
+      console.log("api key" , apiKey );
+      PakkeController.validateApiKey( apiKey ).then( function(result){
+        res.send(JSON.stringify({'valid': true }))
       }).catch( error => {
         res.send(JSON.stringify({
-          "valid" : true,
+          "valid" : false,
           "message" : "La API key no es valida o no esta habilitada realizar consultas"
         }));
       })
     }else {
-      res.send(JSON.stringify({'error': true }))
+      res.send(JSON.stringify({"valid": false, "message": "La API key no puede estar vacia" }))
     }
 })
 
